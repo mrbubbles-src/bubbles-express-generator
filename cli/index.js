@@ -1,23 +1,38 @@
 #!/usr/bin/env node
 import updateNotifier from 'update-notifier';
 import { readFileSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import prompts from 'prompts';
+import kleur from 'kleur';
+import boxen from 'boxen';
+import ora from 'ora';
+import { argv } from 'process';
+
+const CONFIRM_OVERWRITE_TOKEN = 'DELETE_CURRENT_DIR';
+const CANCEL_MESSAGE = kleur.yellow('\n⚠️  Project setup canceled.\n');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'package.json')),
 );
-const notifier = updateNotifier({ pkg, updateCheckInterval: 0 });
+const isTestMode = process.env.NODE_ENV === 'test';
+const isCI = process.env.CI === 'true' || process.env.CI === '1';
+const shouldCheckUpdates = !isTestMode && !isCI && process.stdout.isTTY;
+const notifier = shouldCheckUpdates ? updateNotifier({ pkg }) : null;
 
-import prompts from 'prompts';
-import fs from 'fs/promises';
+const promptOptions = {
+  onCancel: () => {
+    console.log(CANCEL_MESSAGE);
+    process.exit(130);
+  },
+};
 
-import kleur from 'kleur';
-import boxen from 'boxen';
-import ora from 'ora';
+const ask = async (questions) => prompts(questions, promptOptions);
 
-if (notifier.update && process.stdout.isTTY) {
+if (notifier?.update) {
   console.log(
     boxen(
       [
@@ -41,9 +56,9 @@ if (notifier.update && process.stdout.isTTY) {
   );
 }
 
-import { argv } from 'process';
-
 const args = argv.slice(2);
+const nonFlagArgs = args.filter((arg) => !arg.startsWith('--'));
+const firstNonFlagArg = nonFlagArgs[0] ?? null;
 
 if (args.includes('-h') || args.includes('--help')) {
   console.log(
@@ -59,11 +74,13 @@ if (args.includes('-h') || args.includes('--help')) {
         '  --js       Use JavaScript',
         '  --mongo    Use MongoDB (Mongoose)',
         '  --pg       Use PostgreSQL (Supabase + Drizzle)',
+        '  --skip-install Skip npm install after scaffolding',
         '  -h, --help Show this help message',
         '',
         kleur.gray('Example:'),
         '  npx bubbles-express my-api --ts --mongo',
         '  npx bubbles-express . --js --pg',
+        '  npx bubbles-express my-api --ts --pg --skip-install',
       ].join('\n'),
       {
         padding: 1,
@@ -78,19 +95,26 @@ if (args.includes('-h') || args.includes('--help')) {
   process.exit(0);
 }
 
-const isDot = args.includes('.') || args[0] === '.';
+if (isTestMode && process.env.MOCK_CANCEL === '1') {
+  console.log(CANCEL_MESSAGE);
+  process.exit(130);
+}
+
+const isDot = firstNonFlagArg === '.';
 
 const flags = {
   useCurrentDir: isDot,
-  projectName: isDot ? '.' : args.find((arg) => !arg.startsWith('--')) || null,
+  projectName: isDot ? '.' : firstNonFlagArg,
   language: args.includes('--ts') ? 'ts' : args.includes('--js') ? 'js' : null,
   db: args.includes('--mongo') ? 'mongo' : args.includes('--pg') ? 'pg' : null,
+  skipInstall: args.includes('--skip-install'),
 };
-
-const isTestMode = process.env.NODE_ENV === 'test';
 
 if (!isTestMode) {
   const hasFlags = flags.language && flags.db;
+  const skipInstallInfo = flags.skipInstall
+    ? kleur.gray('\ninstall: skipped (--skip-install)')
+    : '';
   const introMessage = hasFlags
     ? `${kleur
         .green()
@@ -102,7 +126,7 @@ ${kleur.dim(
 
 ${kleur.gray(
   `project: ${flags.projectName} | language: ${flags.language} | database: ${flags.db}`,
-)}`
+)}${skipInstallInfo}`
     : `👋 Welcome to ${kleur.magenta().bold("Bubbles' Express Generator")}!
 
 ${kleur.white("Answer a few questions and we'll get you set up quickly.")}
@@ -127,9 +151,9 @@ ${kleur.white("Answer a few questions and we'll get you set up quickly.")}
 
 const mockResponses = isTestMode
   ? {
-      projectName: flags.projectName ?? 'test-app',
-      language: flags.language ?? 'js',
-      db: flags.db ?? 'mongo',
+      projectName: flags.projectName ?? process.env.MOCK_PROJECT_NAME ?? 'test-app',
+      language: flags.language ?? process.env.MOCK_LANGUAGE ?? 'js',
+      db: flags.db ?? process.env.MOCK_DB ?? 'mongo',
     }
   : null;
 
@@ -173,82 +197,253 @@ let response;
 if (isTestMode) {
   response = mockResponses;
 } else {
-  response = await prompts(promptQuestions);
+  response = await ask(promptQuestions);
 }
 
 response.projectName = flags.projectName ?? response.projectName;
 response.language = flags.language ?? response.language;
 response.db = flags.db ?? response.db;
 
+const skipInstallFromEnv = process.env.BUBBLES_SKIP_INSTALL;
+const shouldSkipInstall =
+  flags.skipInstall ||
+  skipInstallFromEnv === '1' ||
+  (skipInstallFromEnv !== '0' && isTestMode);
+
+const removePath = async (targetPath) => {
+  try {
+    await fs.rm(targetPath, {
+      recursive: true,
+      force: true,
+      maxRetries: 6,
+      retryDelay: 120,
+    });
+    return;
+  } catch (error) {
+    if (error?.code !== 'ENOTEMPTY') {
+      throw error;
+    }
+  }
+
+  // If a directory changes while being removed, retry after deleting children.
+  const stats = await fs.lstat(targetPath).catch(() => null);
+  if (!stats) {
+    return;
+  }
+
+  if (stats.isDirectory()) {
+    const childEntries = await fs.readdir(targetPath).catch(() => []);
+    for (const child of childEntries) {
+      await removePath(path.join(targetPath, child));
+    }
+    await fs.rmdir(targetPath).catch(() => undefined);
+    return;
+  }
+
+  await fs.rm(targetPath, { force: true }).catch(() => undefined);
+};
+
+const removeDirectoryContents = async (directory) => {
+  const entries = await fs.readdir(directory);
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry);
+    await removePath(fullPath);
+  }
+};
+
+const askForProjectName = async (currentName) => {
+  if (isTestMode && process.env.MOCK_RENAME) {
+    return process.env.MOCK_RENAME;
+  }
+
+  const { newName } = await ask({
+    type: 'text',
+    name: 'newName',
+    message: 'Choose a new name for your project:',
+    initial: `${currentName}-new`,
+  });
+  return newName?.trim();
+};
+
+const askForDotDirectoryAction = async (targetDir) => {
+  if (isTestMode) {
+    if (process.env.MOCK_DOT_ACTION) {
+      return process.env.MOCK_DOT_ACTION;
+    }
+    if (process.env.MOCK_OVERWRITE !== undefined) {
+      return process.env.MOCK_OVERWRITE === '1' ? 'overwrite' : 'rename';
+    }
+    return 'cancel';
+  }
+
+  const warning = [
+    `You are about to overwrite files in ${kleur.bold(targetDir)}.`,
+    kleur.red().bold('This action is NOT reversible.'),
+  ].join('\n');
+
+  console.log(
+    boxen(warning, {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'double',
+      borderColor: 'red',
+      title: 'Danger Zone',
+      titleAlignment: 'center',
+    }),
+  );
+
+  const { dotAction } = await ask({
+    type: 'select',
+    name: 'dotAction',
+    message: 'This directory is not empty. What do you want to do?',
+    choices: [
+      { title: 'Use new project name', value: 'rename' },
+      { title: 'Overwrite current directory', value: 'overwrite' },
+      { title: 'Cancel', value: 'cancel' },
+    ],
+  });
+
+  return dotAction;
+};
+
+const confirmDotOverwrite = async (targetDir) => {
+  if (isTestMode) {
+    if (process.env.MOCK_DOT_CONFIRM !== undefined) {
+      return process.env.MOCK_DOT_CONFIRM === CONFIRM_OVERWRITE_TOKEN;
+    }
+    return process.env.MOCK_OVERWRITE === '1';
+  }
+
+  const { confirmation } = await ask({
+    type: 'text',
+    name: 'confirmation',
+    message: `Type ${CONFIRM_OVERWRITE_TOKEN} to permanently overwrite files in ${targetDir}:`,
+  });
+
+  return confirmation === CONFIRM_OVERWRITE_TOKEN;
+};
+
+const shouldOverwriteNamedDirectory = async (targetDir) => {
+  if (isTestMode && process.env.MOCK_OVERWRITE !== undefined) {
+    return process.env.MOCK_OVERWRITE === '1';
+  }
+
+  const { overwrite } = await ask({
+    type: 'confirm',
+    name: 'overwrite',
+    message: `The directory "${path.basename(targetDir)}" is not empty. Overwrite?`,
+    initial: false,
+  });
+
+  return overwrite;
+};
+
+const installDependencies = async (targetDir) => {
+  const spinner = ora('📦 Installing dependencies...').start();
+
+  await new Promise((resolve, reject) => {
+    const child = spawn('npm', ['install'], {
+      cwd: targetDir,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(
+          new Error(`npm install failed with exit code ${code ?? 'unknown'}`),
+        );
+      }
+    });
+  });
+
+  spinner.succeed(kleur.green('✅ Dependencies installed'));
+};
+
 const createProject = async (choices) => {
   try {
-    if (!choices.language || !choices.db) {
-      const moreChoices = await prompts([
-        {
-          type: 'select',
-          name: 'language',
-          message: 'What language do you want to use?',
-          choices: [
-            { title: 'JavaScript', value: 'js' },
-            { title: 'TypeScript', value: 'ts' },
-          ],
-        },
-        {
-          type: 'select',
-          name: 'db',
-          message: 'What database do you want to use?',
-          choices: [
-            { title: 'MongoDB (Atlas) with Mongoose ODM', value: 'mongo' },
-            { title: 'Supabase PostgreSQL with Drizzle ORM', value: 'pg' },
-          ],
-        },
-      ]);
-      Object.assign(choices, moreChoices);
+    if (!choices.projectName || !choices.language || !choices.db) {
+      console.log(kleur.yellow('\n⚠️  Project setup was canceled or incomplete.\n'));
+      return;
     }
+
+    let projectName = choices.projectName;
+    let targetDir = path.resolve(
+      process.cwd(),
+      projectName === '.' ? '.' : projectName,
+    );
+
+    while (true) {
+      const existingFiles = await fs.readdir(targetDir).catch(() => []);
+
+      if (existingFiles.length === 0) {
+        break;
+      }
+
+      const isCurrentDirectory =
+        path.resolve(targetDir) === path.resolve(process.cwd());
+
+      if (isCurrentDirectory) {
+        const action = await askForDotDirectoryAction(targetDir);
+
+        if (action === 'cancel') {
+          console.log(CANCEL_MESSAGE);
+          return;
+        }
+
+        if (action === 'rename') {
+          const newName = await askForProjectName(projectName);
+          if (!newName) {
+            console.log(CANCEL_MESSAGE);
+            return;
+          }
+          projectName = newName;
+          targetDir = path.resolve(process.cwd(), projectName);
+          continue;
+        }
+
+        const hasConfirmed = await confirmDotOverwrite(targetDir);
+        if (!hasConfirmed) {
+          console.log(
+            kleur.yellow('\n⚠️  Overwrite confirmation failed. Setup canceled.\n'),
+          );
+          return;
+        }
+        await removeDirectoryContents(targetDir);
+        break;
+      }
+
+      const overwrite = await shouldOverwriteNamedDirectory(targetDir);
+      if (!overwrite) {
+        const newName = await askForProjectName(projectName);
+        if (!newName) {
+          console.log(CANCEL_MESSAGE);
+          return;
+        }
+        projectName = newName;
+        targetDir = path.resolve(process.cwd(), projectName);
+        continue;
+      }
+
+      await removePath(targetDir);
+      break;
+    }
+
+    choices.projectName = projectName;
 
     const templateDir = path.resolve(
       __dirname,
       '..',
       `templates/${choices.language}-${choices.db}`,
     );
-    const targetDir = path.resolve(
-      process.cwd(),
-      choices.projectName === '.' ? '.' : choices.projectName,
-    );
 
-    const existingFiles = await fs.readdir(targetDir).catch(() => []);
-    if (existingFiles.length > 0) {
-      const overwrite =
-        isTestMode && process.env.MOCK_OVERWRITE !== undefined
-          ? process.env.MOCK_OVERWRITE === '1'
-          : (
-              await prompts({
-                type: 'confirm',
-                name: 'overwrite',
-                message: `The directory "${path.basename(
-                  targetDir,
-                )}" is not empty. Overwrite?`,
-                initial: false,
-              })
-            ).overwrite;
-
-      if (!overwrite) {
-        const newName =
-          isTestMode && process.env.MOCK_RENAME
-            ? process.env.MOCK_RENAME
-            : (
-                await prompts({
-                  type: 'text',
-                  name: 'newName',
-                  message: 'Choose a new name for your project:',
-                  initial: `${choices.projectName}-new`,
-                })
-              ).newName;
-        choices.projectName = newName;
-        return await createProject(choices);
-      } else {
-        await fs.rm(targetDir, { recursive: true, force: true });
-      }
+    try {
+      await fs.access(templateDir);
+    } catch {
+      throw new Error(`Template not found: ${choices.language}-${choices.db}`);
     }
 
     await fs.mkdir(targetDir, { recursive: true });
@@ -279,21 +474,28 @@ const createProject = async (choices) => {
 
     await replacePlaceholders(targetDir);
 
-    const spinner = ora('📦 Installing dependencies...').start();
-    const { exec } = await import('child_process');
-    await new Promise((resolve, reject) => {
-      exec('npm install', { cwd: targetDir }, (error, stdout, stderr) => {
-        if (error) {
-          spinner.fail(kleur.red('❌ npm install failed'));
-          console.error(kleur.red(stderr));
-          reject(error);
-        } else {
-          spinner.succeed(kleur.green('✅ Dependencies installed'));
-          console.log(kleur.gray(stdout));
-          resolve();
-        }
-      });
-    });
+    if (shouldSkipInstall) {
+      console.log(
+        kleur.yellow(
+          '\n⏭️  Skipping dependency installation (--skip-install, BUBBLES_SKIP_INSTALL=1, or test mode).\n',
+        ),
+      );
+    } else {
+      await installDependencies(targetDir);
+    }
+
+    const isCurrentDirectory =
+      path.resolve(targetDir) === path.resolve(process.cwd());
+    const nextSteps = isCurrentDirectory
+      ? [`  ${kleur.dim('npm run dev')}`]
+      : [
+          `  ${kleur.dim(`cd ${path.basename(targetDir)}`)}`,
+          `  ${kleur.dim('npm run dev')}`,
+        ];
+    const installHint = shouldSkipInstall
+      ? `  ${kleur.dim('npm install')}\n`
+      : '';
+
     const summaryBox = boxen(
       [
         `🎉 ${kleur.bold('Project created successfully!')}`,
@@ -312,8 +514,8 @@ const createProject = async (choices) => {
         kleur.italic('Happy coding! 🚀'),
         '',
         kleur.bold('👉 Next steps:'),
-        `  ${kleur.dim(`cd ${path.basename(targetDir)}`)}`,
-        `  ${kleur.dim('npm run dev')}`,
+        ...(installHint ? [installHint.trimEnd()] : []),
+        ...nextSteps,
       ].join('\n'),
       {
         padding: { top: 1, bottom: 1, left: 2, right: 2 },
@@ -335,10 +537,8 @@ const createProject = async (choices) => {
 };
 
 if (response.projectName && response.language && response.db) {
-  createProject(response);
+  await createProject(response);
 } else {
-  console.log(
-    kleur.yellow('\n⚠️  Project setup was canceled or incomplete.\n'),
-  );
+  console.log(kleur.yellow('\n⚠️  Project setup was canceled or incomplete.\n'));
   process.exit(0);
 }

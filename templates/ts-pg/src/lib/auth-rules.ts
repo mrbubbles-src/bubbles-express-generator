@@ -1,5 +1,5 @@
 import { check } from 'express-validator';
-import { ValidationChain } from 'express-validator/lib/chain/validation-chain.js';
+import type { ValidationChain } from 'express-validator';
 
 export const userValidationRules: { [key: string]: ValidationChain[] } = {
   register: [
@@ -34,8 +34,6 @@ export const userValidationRules: { [key: string]: ValidationChain[] } = {
         }
         return true;
       })
-      .escape()
-      .withMessage('Password contains invalid characters')
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters long'),
   ],
@@ -60,8 +58,7 @@ export const userValidationRules: { [key: string]: ValidationChain[] } = {
           throw new Error(`Password cannot contain '${found}'`);
         }
         return true;
-      })
-      .escape(),
+      }),
   ],
 };
 

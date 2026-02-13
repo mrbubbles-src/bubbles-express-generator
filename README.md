@@ -2,7 +2,7 @@
 
 ## A simple CLI to scaffold Express.js starter projects.
 
-[🔧 Usage](#🔧-usage-🔝) | [🧪 Variants](#🧪-variants-🔝) | [📁 Output](#📁-output-🔝) | [🏁 Flags](#🏁-flags-🔝) | [📖 Help](#📖-help-🔝) | [🤝 Contributions](#🤝-contributions-🔝) | [🔗 Links](#🔗-links-🔝)
+[🔧 Usage](#🔧-usage-🔝) | [🧪 Variants](#🧪-variants-🔝) | [📁 Output](#📁-output-🔝) | [🏁 Flags](#🏁-flags-🔝) | [⚙️ Environment Variables](#⚙️-environment-variables-🔝) | [📖 Help](#📖-help-🔝) | [🤝 Contributions](#🤝-contributions-🔝) | [🔗 Links](#🔗-links-🔝)
 
 ![bubbles-express](bubbles-express.png)
 
@@ -38,7 +38,8 @@ The generator supports different project types:
 ### 📁 Output [🔝](#bubbles-express-generator)
 
 A new folder will be created with the generated code based on your selections.  
-If the current directory is not empty, you'll be prompted whether to overwrite it or choose a new name.  
+If the target directory is not empty, you'll be prompted whether to overwrite it or choose a new name.  
+If you target `.` and it is non-empty, the CLI shows a clear danger warning and requires a typed confirmation (`DELETE_CURRENT_DIR`) before anything is deleted.  
 After that, dependencies will be installed automatically.
 
 Once it's done, you can start your project with:
@@ -56,14 +57,22 @@ You can skip the interactive prompts by providing flags directly:
 
 - `--ts` or `--js`: Set the language (TypeScript or JavaScript)
 - `--pg` or `--mongo`: Choose your database (PostgreSQL or MongoDB)
+- `--skip-install`: Scaffold the project without running `npm install`
 
 Example:
 
 ```bash
 npx bubbles-express my-api --ts --pg
+npx bubbles-express my-api --ts --pg --skip-install
 ```
 
 If all necessary flags are provided, the generator will auto-run without any questions.
+
+### ⚙️ Environment Variables [🔝](#bubbles-express-generator)
+
+- `BUBBLES_SKIP_INSTALL=1`: Skip dependency installation after scaffolding
+- `CORS_ORIGIN`: Comma-separated CORS allowlist in generated projects (defaults to `http://localhost:3000` in development)
+- `TRUST_PROXY=1`: Enables `app.set('trust proxy', 1)` in generated projects
 
 ### 📖 Help [🔝](#bubbles-express-generator)
 
