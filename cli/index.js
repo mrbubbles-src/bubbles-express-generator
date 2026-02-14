@@ -13,6 +13,7 @@ import { argv } from 'process';
 
 const CONFIRM_OVERWRITE_TOKEN = 'DELETE_CURRENT_DIR';
 const CANCEL_MESSAGE = kleur.yellow('\n⚠️  Project setup canceled.\n');
+const VALID_PACKAGE_MANAGERS = new Set(['bun', 'npm']);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(
@@ -40,9 +41,8 @@ if (notifier?.update) {
           .green()
           .bold('→')} ${kleur.green().bold(notifier.update.latest)}`,
         '',
-        `📦 Run ${kleur
-          .green()
-          .bold(`npm i -g ${notifier.update.name}`)} to update`,
+        `📦 npm: ${kleur.green().bold(`npm i -g ${notifier.update.name}`)}`,
+        `📦 Bun: ${kleur.green().bold(`bun add -g ${notifier.update.name}`)}`,
       ].join('\n'),
       {
         padding: 1,
@@ -57,8 +57,83 @@ if (notifier?.update) {
 }
 
 const args = argv.slice(2);
-const nonFlagArgs = args.filter((arg) => !arg.startsWith('--'));
+
+const getFlagValue = (allArgs, flagName) => {
+  const equalsPrefix = `${flagName}=`;
+  const inline = allArgs.find((arg) => arg.startsWith(equalsPrefix));
+  if (inline) {
+    return inline.slice(equalsPrefix.length);
+  }
+
+  const flagIndex = allArgs.indexOf(flagName);
+  if (flagIndex === -1) {
+    return null;
+  }
+
+  const nextValue = allArgs[flagIndex + 1];
+  if (!nextValue || nextValue.startsWith('--')) {
+    return '';
+  }
+  return nextValue;
+};
+
+const getPositionalArgs = (allArgs) => {
+  const positionalArgs = [];
+  for (let index = 0; index < allArgs.length; index += 1) {
+    const arg = allArgs[index];
+    if (arg === '--pm') {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('--pm=')) {
+      continue;
+    }
+    if (arg.startsWith('--')) {
+      continue;
+    }
+    positionalArgs.push(arg);
+  }
+  return positionalArgs;
+};
+
+const exitWithInvalidPm = (source, receivedValue) => {
+  const printableValue =
+    receivedValue === undefined || receivedValue === null || receivedValue === ''
+      ? '(empty)'
+      : receivedValue;
+  console.error(
+    kleur.red(
+      `Invalid package manager from ${source}: ${printableValue}. Use --pm bun|npm or BUBBLES_PM=bun|npm.`,
+    ),
+  );
+  process.exit(1);
+};
+
+const resolvePackageManager = (rawValue, source) => {
+  if (rawValue === null || rawValue === undefined) {
+    return null;
+  }
+
+  const normalized = rawValue.trim().toLowerCase();
+  if (!normalized) {
+    if (source === '--pm') {
+      exitWithInvalidPm(source, rawValue);
+    }
+    return null;
+  }
+
+  if (!VALID_PACKAGE_MANAGERS.has(normalized)) {
+    exitWithInvalidPm(source, rawValue);
+  }
+
+  return normalized;
+};
+
+const nonFlagArgs = getPositionalArgs(args);
 const firstNonFlagArg = nonFlagArgs[0] ?? null;
+const packageManagerFlagValue = getFlagValue(args, '--pm');
+const packageManagerEnvValue = process.env.BUBBLES_PM;
+const isInteractive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
 
 if (args.includes('-h') || args.includes('--help')) {
   console.log(
@@ -68,19 +143,21 @@ if (args.includes('-h') || args.includes('--help')) {
         '',
         kleur.white('Usage:'),
         '  npx bubbles-express [project-name|.] [flags]',
+        '  bunx --bun bubbles-express [project-name|.] [flags]',
         '',
         kleur.white('Flags:'),
         '  --ts       Use TypeScript',
         '  --js       Use JavaScript',
         '  --mongo    Use MongoDB (Mongoose)',
         '  --pg       Use PostgreSQL (Supabase + Drizzle)',
-        '  --skip-install Skip npm install after scaffolding',
+        '  --pm <bun|npm> Choose package manager (interactive prompt by default)',
+        '  --skip-install Skip dependency installation after scaffolding',
         '  -h, --help Show this help message',
         '',
         kleur.gray('Example:'),
         '  npx bubbles-express my-api --ts --mongo',
-        '  npx bubbles-express . --js --pg',
-        '  npx bubbles-express my-api --ts --pg --skip-install',
+        '  npx bubbles-express . --js --pg --pm npm',
+        '  bunx --bun bubbles-express my-api --ts --pg --pm bun --skip-install',
       ].join('\n'),
       {
         padding: 1,
@@ -95,6 +172,21 @@ if (args.includes('-h') || args.includes('--help')) {
   process.exit(0);
 }
 
+const packageManagerFromFlag = resolvePackageManager(packageManagerFlagValue, '--pm');
+const packageManagerFromEnv = resolvePackageManager(
+  packageManagerEnvValue,
+  'BUBBLES_PM',
+);
+
+if (!isTestMode && !isInteractive && !packageManagerFromFlag && !packageManagerFromEnv) {
+  console.error(
+    kleur.red(
+      'Non-interactive mode requires a package manager. Use --pm bun|npm or BUBBLES_PM=bun|npm.',
+    ),
+  );
+  process.exit(1);
+}
+
 if (isTestMode && process.env.MOCK_CANCEL === '1') {
   console.log(CANCEL_MESSAGE);
   process.exit(130);
@@ -107,6 +199,7 @@ const flags = {
   projectName: isDot ? '.' : firstNonFlagArg,
   language: args.includes('--ts') ? 'ts' : args.includes('--js') ? 'js' : null,
   db: args.includes('--mongo') ? 'mongo' : args.includes('--pg') ? 'pg' : null,
+  packageManager: packageManagerFromFlag ?? packageManagerFromEnv,
   skipInstall: args.includes('--skip-install'),
 };
 
@@ -121,11 +214,11 @@ if (!isTestMode) {
         .bold('🚀 Oh, I see you know what you want — let’s get started!')}
 
 ${kleur.dim(
-  `> npx bubbles-express ${flags.projectName} --${flags.language} --${flags.db}`,
+      `> npx bubbles-express ${flags.projectName} --${flags.language} --${flags.db}`,
 )}
 
 ${kleur.gray(
-  `project: ${flags.projectName} | language: ${flags.language} | database: ${flags.db}`,
+  `project: ${flags.projectName} | language: ${flags.language} | database: ${flags.db} | pm: ${flags.packageManager ?? 'prompt'}`,
 )}${skipInstallInfo}`
     : `👋 Welcome to ${kleur.magenta().bold("Bubbles' Express Generator")}!
 
@@ -154,6 +247,8 @@ const mockResponses = isTestMode
       projectName: flags.projectName ?? process.env.MOCK_PROJECT_NAME ?? 'test-app',
       language: flags.language ?? process.env.MOCK_LANGUAGE ?? 'js',
       db: flags.db ?? process.env.MOCK_DB ?? 'mongo',
+      packageManager:
+        flags.packageManager ?? process.env.MOCK_PM ?? process.env.BUBBLES_PM ?? 'npm',
     }
   : null;
 
@@ -192,6 +287,18 @@ if (!flags.db) {
   });
 }
 
+if (!flags.packageManager) {
+  promptQuestions.push({
+    type: 'select',
+    name: 'packageManager',
+    message: 'Which package manager do you want to use?',
+    choices: [
+      { title: 'Bun', value: 'bun' },
+      { title: 'npm', value: 'npm' },
+    ],
+  });
+}
+
 let response;
 
 if (isTestMode) {
@@ -203,6 +310,7 @@ if (isTestMode) {
 response.projectName = flags.projectName ?? response.projectName;
 response.language = flags.language ?? response.language;
 response.db = flags.db ?? response.db;
+response.packageManager = flags.packageManager ?? response.packageManager;
 
 const skipInstallFromEnv = process.env.BUBBLES_SKIP_INSTALL;
 const shouldSkipInstall =
@@ -338,34 +446,95 @@ const shouldOverwriteNamedDirectory = async (targetDir) => {
   return overwrite;
 };
 
-const installDependencies = async (targetDir) => {
-  const spinner = ora('📦 Installing dependencies...').start();
+const installDependencies = async (targetDir, packageManager) => {
+  const command = packageManager === 'bun' ? 'bun' : 'npm';
+  const installArgs = ['install'];
+  const spinner = ora(`📦 Installing dependencies (${command} install)...`).start();
 
   await new Promise((resolve, reject) => {
-    const child = spawn('npm', ['install'], {
+    const child = spawn(command, installArgs, {
       cwd: targetDir,
       stdio: 'inherit',
       shell: process.platform === 'win32',
     });
 
-    child.on('error', reject);
+    child.on('error', (error) => {
+      if (error?.code === 'ENOENT') {
+        reject(
+          new Error(
+            command === 'bun'
+              ? 'Bun is not installed. Install Bun from https://bun.sh or rerun with --pm npm.'
+              : 'npm is not installed or not in PATH. Please install Node.js/npm and try again.',
+          ),
+        );
+        return;
+      }
+      reject(error);
+    });
     child.on('close', (code) => {
       if (code === 0) {
         resolve();
       } else {
         reject(
-          new Error(`npm install failed with exit code ${code ?? 'unknown'}`),
+          new Error(
+            `${command} install failed with exit code ${code ?? 'unknown'}.`,
+          ),
         );
       }
     });
   });
 
-  spinner.succeed(kleur.green('✅ Dependencies installed'));
+  spinner.succeed(kleur.green(`✅ Dependencies installed (${command} install)`));
+};
+
+const applyPackageManagerProfile = async (targetDir, choices) => {
+  if (choices.packageManager !== 'bun') {
+    return;
+  }
+
+  const packageJsonPath = path.join(targetDir, 'package.json');
+  const packageJsonRaw = await fs.readFile(packageJsonPath, 'utf-8');
+  const packageJson = JSON.parse(packageJsonRaw);
+  const isTypeScriptTemplate = choices.language === 'ts';
+  const appEntry = isTypeScriptTemplate ? 'src/app.ts' : 'src/app.js';
+
+  packageJson.scripts = {
+    ...packageJson.scripts,
+    dev: `bun --watch ${appEntry}`,
+    start: `bun ${appEntry}`,
+    test: 'bun test',
+    'test:watch': 'bun test --watch',
+  };
+
+  if (packageJson.scripts?.fullclean) {
+    const lockfiles = ['bun.lock', 'bun.lockb'];
+    let fullcleanScript = packageJson.scripts.fullclean;
+    for (const lockfile of lockfiles) {
+      if (!fullcleanScript.includes(lockfile)) {
+        fullcleanScript = `${fullcleanScript} ${lockfile}`;
+      }
+    }
+    packageJson.scripts.fullclean = fullcleanScript;
+  }
+
+  if (packageJson.devDependencies) {
+    delete packageJson.devDependencies.nodemon;
+    if (isTypeScriptTemplate) {
+      delete packageJson.devDependencies.tsx;
+    }
+  }
+
+  await fs.writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 };
 
 const createProject = async (choices) => {
   try {
-    if (!choices.projectName || !choices.language || !choices.db) {
+    if (
+      !choices.projectName ||
+      !choices.language ||
+      !choices.db ||
+      !choices.packageManager
+    ) {
       console.log(kleur.yellow('\n⚠️  Project setup was canceled or incomplete.\n'));
       return;
     }
@@ -473,34 +642,38 @@ const createProject = async (choices) => {
     };
 
     await replacePlaceholders(targetDir);
+    await applyPackageManagerProfile(targetDir, choices);
 
     if (shouldSkipInstall) {
+      const installCommand = `${choices.packageManager} install`;
       console.log(
         kleur.yellow(
-          '\n⏭️  Skipping dependency installation (--skip-install, BUBBLES_SKIP_INSTALL=1, or test mode).\n',
+          `\n⏭️  Skipping dependency installation (--skip-install, BUBBLES_SKIP_INSTALL=1, or test mode). Run "${installCommand}" when you're ready.\n`,
         ),
       );
     } else {
-      await installDependencies(targetDir);
+      await installDependencies(targetDir, choices.packageManager);
     }
 
     const isCurrentDirectory =
       path.resolve(targetDir) === path.resolve(process.cwd());
+    const runDevCommand = `${choices.packageManager} run dev`;
+    const installCommand = `${choices.packageManager} install`;
     const nextSteps = isCurrentDirectory
-      ? [`  ${kleur.dim('npm run dev')}`]
+      ? [`  ${kleur.dim(runDevCommand)}`]
       : [
           `  ${kleur.dim(`cd ${path.basename(targetDir)}`)}`,
-          `  ${kleur.dim('npm run dev')}`,
+          `  ${kleur.dim(runDevCommand)}`,
         ];
     const installHint = shouldSkipInstall
-      ? `  ${kleur.dim('npm install')}\n`
+      ? `  ${kleur.dim(installCommand)}\n`
       : '';
 
     const summaryBox = boxen(
       [
         `🎉 ${kleur.bold('Project created successfully!')}`,
         `${kleur.gray(
-          `> npx bubbles-express ${choices.projectName} --${choices.language} --${choices.db}`,
+          `> npx bubbles-express ${choices.projectName} --${choices.language} --${choices.db} --pm ${choices.packageManager}`,
         )}`,
         '',
         `${kleur.bold('📂 Project Folder:')} ${kleur.green(
@@ -510,6 +683,7 @@ const createProject = async (choices) => {
           choices.language,
         )}`,
         `${kleur.bold('🗃️  Database:')}       ${kleur.cyan(choices.db)}`,
+        `${kleur.bold('📦 Package manager:')} ${kleur.magenta(choices.packageManager)}`,
         '',
         kleur.italic('Happy coding! 🚀'),
         '',
@@ -536,7 +710,7 @@ const createProject = async (choices) => {
   }
 };
 
-if (response.projectName && response.language && response.db) {
+if (response.projectName && response.language && response.db && response.packageManager) {
   await createProject(response);
 } else {
   console.log(kleur.yellow('\n⚠️  Project setup was canceled or incomplete.\n'));

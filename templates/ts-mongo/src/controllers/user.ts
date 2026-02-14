@@ -1,6 +1,8 @@
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+
+import type { GlobalError, JWTPayload } from '../types/types.js';
+
 import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
-import { GlobalError, JWTPayload } from '../types/types.js';
 import User from '../models/user.js';
 
 const getAuthCookieOptions = () => ({
@@ -10,11 +12,7 @@ const getAuthCookieOptions = () => ({
   maxAge: 30 * 24 * 60 * 60 * 1000,
 });
 
-export const createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
 
@@ -56,11 +54,7 @@ export const createUser = async (
   }
 };
 
-export const verifyUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const verifyUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
 
@@ -82,10 +76,7 @@ export const verifyUser = async (
 
     const { _id, username, role, verified } = user;
 
-    const token = createJWT(
-      { _id: _id, username, role, verified } as JWTPayload,
-      '30d',
-    );
+    const token = createJWT({ _id: _id, username, role, verified } as JWTPayload, '30d');
 
     res.cookie('token', token, getAuthCookieOptions());
 

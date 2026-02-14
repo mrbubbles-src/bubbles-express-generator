@@ -1,6 +1,7 @@
-import { usersTable } from '../db/schema.js';
-import { db } from '../db/index.js';
 import { eq, or } from 'drizzle-orm';
+
+import { db } from '../db/index.js';
+import { usersTable } from '../db/schema.js';
 import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
 
 const getAuthCookieOptions = () => ({
@@ -17,9 +18,7 @@ export const createUser = async (req, res, next) => {
     const user = await db
       .select()
       .from(usersTable)
-      .where(
-        or(eq(usersTable.username, username), eq(usersTable.email, email)),
-      );
+      .where(or(eq(usersTable.username, username), eq(usersTable.email, email)));
 
     if (user.length > 0) {
       const error = new Error('Username or email already exists');

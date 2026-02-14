@@ -1,10 +1,9 @@
-import { beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret';
-process.env.MONGO_DB_URI =
-  process.env.MONGO_DB_URI ?? 'mongodb://127.0.0.1:27017/test';
+process.env.MONGO_DB_URI = process.env.MONGO_DB_URI ?? 'mongodb://127.0.0.1:27017/test';
 
 let app;
 

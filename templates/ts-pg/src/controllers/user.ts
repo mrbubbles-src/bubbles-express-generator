@@ -1,9 +1,12 @@
-import { NextFunction, Request, Response } from 'express';
-import { usersTable } from '../db/schema.js';
-import { db } from '../db/index.js';
+import type { NextFunction, Request, Response } from 'express';
+
 import { eq, or } from 'drizzle-orm';
+
+import type { GlobalError, JWTPayload } from '../types/types.js';
+
+import { db } from '../db/index.js';
+import { usersTable } from '../db/schema.js';
 import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
-import { GlobalError, JWTPayload } from '../types/types.js';
 
 const getAuthCookieOptions = () => ({
   httpOnly: true,
@@ -12,20 +15,14 @@ const getAuthCookieOptions = () => ({
   maxAge: 30 * 24 * 60 * 60 * 1000,
 });
 
-export const createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
 
     const user = await db
       .select()
       .from(usersTable)
-      .where(
-        or(eq(usersTable.username, username), eq(usersTable.email, email)),
-      );
+      .where(or(eq(usersTable.username, username), eq(usersTable.email, email)));
 
     if (user.length > 0) {
       const error: GlobalError = new Error('Username or email already exists');
@@ -59,11 +56,7 @@ export const createUser = async (
   }
 };
 
-export const verifyUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const verifyUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
 
@@ -95,10 +88,7 @@ export const verifyUser = async (
 
     const { id, username, role, verified } = user[0];
 
-    const token = createJWT(
-      { id, username, role, verified } as JWTPayload,
-      '30d',
-    );
+    const token = createJWT({ id, username, role, verified } as JWTPayload, '30d');
 
     res.cookie('token', token, getAuthCookieOptions());
 

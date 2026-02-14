@@ -1,14 +1,18 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
-import pinoHttp from 'pino-http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import type { Request, Response } from 'express';
+
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import { pinoHttp } from 'pino-http';
+
 import { env } from './config/env.js';
-import { pingDatabase, closeDatabase } from './db/index.js';
-import { notFoundHandler } from './middleware/not-found.js';
+import { closeDatabase, pingDatabase } from './db/index.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { notFoundHandler } from './middleware/not-found.js';
 import { router as userRouter } from './routes/user.js';
 
 const resolveAllowedOrigins = (): string[] => {
@@ -101,8 +105,7 @@ const shutdown = async (signal: string): Promise<void> => {
 };
 
 const isDirectRun =
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
   startServer();

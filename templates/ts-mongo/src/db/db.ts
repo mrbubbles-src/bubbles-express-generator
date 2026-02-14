@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+
 import { env } from '../config/env.js';
 
 let hasConnectionListeners = false;

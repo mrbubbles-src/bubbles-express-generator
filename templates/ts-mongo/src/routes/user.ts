@@ -1,9 +1,10 @@
 import express from 'express';
+
 import { createUser, verifyUser } from '../controllers/user.js';
-import { verifyUserToken } from '../middleware/verify-user-token.js';
+import { userValidationRules } from '../lib/auth-rules.js';
 import { authRateLimit } from '../middleware/auth-rate-limit.js';
 import { validateInputs } from '../middleware/input-validation.js';
-import { userValidationRules } from '../lib/auth-rules.js';
+import { verifyUserToken } from '../middleware/verify-user-token.js';
 
 export const router = express.Router();
 
@@ -12,9 +13,4 @@ router
   .post(authRateLimit, validateInputs(userValidationRules.register), createUser);
 router
   .route('/login')
-  .post(
-    authRateLimit,
-    verifyUserToken,
-    validateInputs(userValidationRules.login),
-    verifyUser,
-  );
+  .post(authRateLimit, verifyUserToken, validateInputs(userValidationRules.login), verifyUser);

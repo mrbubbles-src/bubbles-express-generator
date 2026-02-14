@@ -1,5 +1,6 @@
-import { check } from 'express-validator';
 import type { ValidationChain } from 'express-validator';
+
+import { check } from 'express-validator';
 
 export const userValidationRules: { [key: string]: ValidationChain[] } = {
   register: [

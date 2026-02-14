@@ -14,6 +14,12 @@ You can use the CLI via `npx` (no installation needed):
 npx bubbles-express
 ```
 
+Or run it with Bun:
+
+```bash
+bunx --bun bubbles-express
+```
+
 Or if you prefer to, install it globally:
 
 ```bash
@@ -23,6 +29,13 @@ npm install -g bubbles-express-generator
 Then you can run it with:
 
 ```bash
+bubbles-express
+```
+
+With Bun global installs:
+
+```bash
+bun add -g bubbles-express-generator
 bubbles-express
 ```
 
@@ -40,7 +53,7 @@ The generator supports different project types:
 A new folder will be created with the generated code based on your selections.  
 If the target directory is not empty, you'll be prompted whether to overwrite it or choose a new name.  
 If you target `.` and it is non-empty, the CLI shows a clear danger warning and requires a typed confirmation (`DELETE_CURRENT_DIR`) before anything is deleted.  
-After that, dependencies will be installed automatically.
+After that, dependencies will be installed automatically with your selected package manager.
 
 Once it's done, you can start your project with:
 
@@ -57,13 +70,15 @@ You can skip the interactive prompts by providing flags directly:
 
 - `--ts` or `--js`: Set the language (TypeScript or JavaScript)
 - `--pg` or `--mongo`: Choose your database (PostgreSQL or MongoDB)
-- `--skip-install`: Scaffold the project without running `npm install`
+- `--pm <bun|npm>`: Choose package manager (always prompted interactively if not provided)
+- `--skip-install`: Scaffold the project without running dependency installation
 
 Example:
 
 ```bash
 npx bubbles-express my-api --ts --pg
-npx bubbles-express my-api --ts --pg --skip-install
+npx bubbles-express my-api --ts --pg --pm npm --skip-install
+bunx --bun bubbles-express my-api --ts --pg --pm bun
 ```
 
 If all necessary flags are provided, the generator will auto-run without any questions.
@@ -71,8 +86,27 @@ If all necessary flags are provided, the generator will auto-run without any que
 ### ⚙️ Environment Variables [🔝](#bubbles-express-generator)
 
 - `BUBBLES_SKIP_INSTALL=1`: Skip dependency installation after scaffolding
+- `BUBBLES_PM=bun|npm`: Provide package manager in non-interactive environments
 - `CORS_ORIGIN`: Comma-separated CORS allowlist in generated projects (defaults to `http://localhost:3000` in development)
 - `TRUST_PROXY=1`: Enables `app.set('trust proxy', 1)` in generated projects
+
+### Bun projects
+
+If you choose Bun (`--pm bun`), generated projects are Bun-native:
+
+```bash
+bun install
+bun run dev
+bun test
+```
+
+If you choose npm (`--pm npm`), generated projects keep npm defaults:
+
+```bash
+npm install
+npm run dev
+npm test
+```
 
 ### 📖 Help [🔝](#bubbles-express-generator)
 

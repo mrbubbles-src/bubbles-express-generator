@@ -1,10 +1,9 @@
 import 'dotenv/config';
+
 import { z } from 'zod';
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3001),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET must be set'),
   MONGO_DB_URI: z.string().min(1, 'MONGO_DB_URI must be set'),

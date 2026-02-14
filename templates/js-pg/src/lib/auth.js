@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+
 import { env } from '../config/env.js';
 
 export const hashPassword = async (password, salt) => {

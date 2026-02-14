@@ -1,12 +1,13 @@
-import { JWTPayload } from '../types/types.js';
+import type { Secret, SignOptions } from 'jsonwebtoken';
+
 import bcrypt from 'bcrypt';
-import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+
+import type { JWTPayload } from '../types/types.js';
+
 import { env } from '../config/env.js';
 
-export const hashPassword = async (
-  password: string,
-  salt: number,
-): Promise<string> => {
+export const hashPassword = async (password: string, salt: number): Promise<string> => {
   return await bcrypt.hash(password, salt);
 };
 

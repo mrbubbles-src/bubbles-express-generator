@@ -26,7 +26,9 @@
   ],
   "scripts": {
     "dev": "node cli/index.js",
+    "dev:bun": "bun cli/index.js",
     "test": "npx vitest run tests/cli.test.js --testTimeout=60000",
+    "test:bun": "bun x vitest run tests/cli.test.js --testTimeout=60000",
     "initialrelease": "npm publish --access public",
     "patch": "npm version patch && git add . && git commit -m 'feat: bump version' && git push --follow-tags && npm publish"
   },

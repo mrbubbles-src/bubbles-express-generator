@@ -1,11 +1,8 @@
-import { verifyJWT } from '../lib/auth.js';
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
-export const verifyUserToken = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+import { verifyJWT } from '../lib/auth.js';
+
+export const verifyUserToken = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.cookies?.token;
   if (!token) {
     return next();
