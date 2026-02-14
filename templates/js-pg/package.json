@@ -2,10 +2,16 @@
   "name": "{{__PROJECT_NAME__}}",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "fullclean": "rm -rf node_modules package-lock.json"
   },
   "keywords": [],
@@ -15,18 +21,29 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.44.2",
-    "express": "^5.1.0",
-    "express-validator": "^7.2.1",
-    "http-errors": "^2.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "postgres": "^3.4.7"
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "http-errors": "^2.0.1",
+    "jsonwebtoken": "^9.0.3",
+    "pino-http": "^11.0.0",
+    "postgres": "^3.4.8",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.1",
-    "nodemon": "^3.1.10",
-    "prettier": "^3.5.3"
+    "@eslint/js": "^9.38.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "drizzle-kit": "^0.31.9",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0",
+    "nodemon": "^3.1.11",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.8.1",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

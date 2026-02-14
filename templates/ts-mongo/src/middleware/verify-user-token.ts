@@ -1,27 +1,24 @@
-import { verifyJWT } from '../lib/auth.js';
-import { GlobalError, JWTPayload } from '../types/types.js';
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
-export const verifyUserToken = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+import { verifyJWT } from '../lib/auth.js';
+
+/**
+ * Blocks login/register calls when a valid auth cookie already exists.
+ *
+ * Usage: place before login/register handlers to prevent duplicate sessions.
+ */
+export const verifyUserToken = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.cookies?.token;
   if (!token) {
     return next();
   }
   try {
-    const payload = verifyJWT(token) as JWTPayload;
-
-    if (payload.role === 'admin') {
-      return res.redirect('/admin/dashboard');
-    }
-
-    return res.redirect('/');
+    verifyJWT(token);
+    res.status(409).json({ message: 'Already authenticated' });
+    return;
   } catch {
-    const error: GlobalError = new Error('Ungültiger Token');
-    error.statusCode = 401;
-    return next(error);
+    res.clearCookie('token');
+    next();
+    return;
   }
 };

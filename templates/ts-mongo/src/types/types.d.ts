@@ -14,10 +14,7 @@ interface User {
   createdAt: string;
   updatedAt: string;
 }
-export type JWTPayload = Pick<
-  User,
-  '_id' | 'username' | 'role' | 'verified'
-> & {
+export type JWTPayload = Pick<User, '_id' | 'username' | 'role' | 'verified'> & {
   iat?: number;
   exp?: number;
 };

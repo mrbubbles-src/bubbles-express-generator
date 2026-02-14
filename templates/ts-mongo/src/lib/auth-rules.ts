@@ -1,6 +1,13 @@
-import { check } from 'express-validator';
-import { ValidationChain } from 'express-validator/lib/chain/validation-chain.js';
+import type { ValidationChain } from 'express-validator';
 
+import { check } from 'express-validator';
+
+/**
+ * Validation chains keyed by auth action.
+ *
+ * Usage: pass `userValidationRules.register` or `.login` into
+ * `validateInputs` when composing auth routes.
+ */
 export const userValidationRules: { [key: string]: ValidationChain[] } = {
   register: [
     check('username')
@@ -34,8 +41,6 @@ export const userValidationRules: { [key: string]: ValidationChain[] } = {
         }
         return true;
       })
-      .escape()
-      .withMessage('Password contains invalid characters')
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters long'),
   ],
@@ -60,8 +65,7 @@ export const userValidationRules: { [key: string]: ValidationChain[] } = {
           throw new Error(`Password cannot contain '${found}'`);
         }
         return true;
-      })
-      .escape(),
+      }),
   ],
 };
 

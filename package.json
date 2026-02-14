@@ -1,6 +1,6 @@
 {
   "name": "bubbles-express-generator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A simple CLI to scaffold Express.js starter projects.",
   "repository": {
     "type": "git",
@@ -26,7 +26,10 @@
   ],
   "scripts": {
     "dev": "node cli/index.js",
-    "test": "npx vitest run --testTimeout=60000",
+    "dev:bun": "bun cli/index.js",
+    "lint": "eslint cli tests",
+    "test": "npx vitest run tests/cli.test.js --testTimeout=60000",
+    "test:bun": "bun x vitest run tests/cli.test.js --testTimeout=60000",
     "initialrelease": "npm publish --access public",
     "patch": "npm version patch && git add . && git commit -m 'feat: bump version' && git push --follow-tags && npm publish"
   },
@@ -45,15 +48,17 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "boxen": "^8.0.1",
     "kleur": "^4.1.5",
-    "ora": "^8.2.0",
+    "ora": "^9.3.0",
     "prompts": "^2.4.2",
     "update-notifier": "^7.3.1"
   },
   "devDependencies": {
-    "execa": "^9.6.0",
-    "fs-extra": "^11.3.0",
-    "vitest": "^3.2.4"
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0",
+    "execa": "^9.6.1",
+    "fs-extra": "^11.3.3",
+    "globals": "^16.4.0",
+    "vitest": "^4.0.18"
   }
 }

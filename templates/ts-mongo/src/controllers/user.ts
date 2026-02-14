@@ -1,15 +1,28 @@
-import { NextFunction, Request, Response } from 'express';
-import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
-import { GlobalError, JWTPayload } from '../types/types.js';
-import User from '../models/user.js';
-import db from '../db/db.js';
+import type { NextFunction, Request, Response } from 'express';
 
-export const createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  await db.connect();
+import type { GlobalError, JWTPayload } from '../types/types.js';
+
+import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
+import User from '../models/user.js';
+
+/**
+ * Shared cookie policy for auth tokens issued by login/register routes.
+ *
+ * Usage: keeps cookie behavior consistent between auth endpoints.
+ */
+const getAuthCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+});
+
+/**
+ * Registers a new account and signs the user in with a fresh token cookie.
+ *
+ * Usage: mounted on `POST /users/register` after validation middleware.
+ */
+export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
 
@@ -43,26 +56,20 @@ export const createUser = async (
       '30d',
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getAuthCookieOptions());
 
     res.status(201).json({ message: 'User created successfully' });
-    await db.close();
   } catch (error) {
     return next(error);
   }
 };
 
-export const verifyUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  await db.connect();
+/**
+ * Authenticates a user and rotates the auth cookie on successful login.
+ *
+ * Usage: mounted on `POST /users/login` with rate limiting + validation.
+ */
+export const verifyUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
 
@@ -84,20 +91,11 @@ export const verifyUser = async (
 
     const { _id, username, role, verified } = user;
 
-    const token = createJWT(
-      { _id: _id, username, role, verified } as JWTPayload,
-      '30d',
-    );
+    const token = createJWT({ _id: _id, username, role, verified } as JWTPayload, '30d');
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getAuthCookieOptions());
 
     res.status(200).json({ message: 'Login successful' });
-    await db.close();
   } catch (error) {
     return next(error);
   }

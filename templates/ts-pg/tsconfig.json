@@ -3,6 +3,7 @@
     "incremental": true,
     "target": "es2022",
     "module": "nodenext",
+    "verbatimModuleSyntax": true,
     "rootDir": ".",
     "moduleResolution": "nodenext",
     "resolveJsonModule": true,

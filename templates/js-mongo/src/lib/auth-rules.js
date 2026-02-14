@@ -1,5 +1,11 @@
 import { check } from 'express-validator';
 
+/**
+ * Validation chains keyed by auth action.
+ *
+ * Usage: pass `userValidationRules.register` or `.login` into
+ * `validateInputs` when composing auth routes.
+ */
 export const userValidationRules = {
   register: [
     check('username')

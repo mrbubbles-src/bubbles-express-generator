@@ -1,9 +1,24 @@
 import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
 import User from '../models/user.js';
-import db from '../db/db.js';
 
+/**
+ * Shared cookie policy for auth tokens issued by login/register routes.
+ *
+ * Usage: keeps cookie behavior consistent between auth endpoints.
+ */
+const getAuthCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+});
+
+/**
+ * Registers a new account and signs the user in with a fresh token cookie.
+ *
+ * Usage: mounted on `POST /users/register` after validation middleware.
+ */
 export const createUser = async (req, res, next) => {
-  await db.connect();
   try {
     const { username, email, password } = req.body;
 
@@ -37,22 +52,20 @@ export const createUser = async (req, res, next) => {
       '30d',
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getAuthCookieOptions());
 
     res.status(201).json({ message: 'User created successfully' });
-    await db.close();
   } catch (error) {
     return next(error);
   }
 };
 
+/**
+ * Authenticates a user and rotates the auth cookie on successful login.
+ *
+ * Usage: mounted on `POST /users/login` with rate limiting + validation.
+ */
 export const verifyUser = async (req, res, next) => {
-  await db.connect();
   try {
     const { email, password } = req.body;
 
@@ -76,15 +89,9 @@ export const verifyUser = async (req, res, next) => {
 
     const token = createJWT({ _id, username, role, verified }, '30d');
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', token, getAuthCookieOptions());
 
     res.status(200).json({ message: 'Login successful' });
-    await db.close();
   } catch (error) {
     return next(error);
   }
