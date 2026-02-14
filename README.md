@@ -162,6 +162,9 @@ Generated project commands include:
 - `test`
 - `typecheck` (TypeScript templates)
 
+When Bun is selected in scaffolding, generated test scripts stay Vitest-based
+(`bunx vitest run` and `bunx vitest`) to match the template test suites.
+
 ## Safety behavior
 
 When scaffolding into `.` and the directory is non-empty:

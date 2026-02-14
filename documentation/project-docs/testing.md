@@ -6,6 +6,9 @@
 - `npm run lint`: lints root CLI and test code.
 - `bun run test:bun`: Bun-based test command for maintainers.
 
+Generated projects created with `--pm bun` keep Vitest as the runner through
+`bunx vitest run` and `bunx vitest`.
+
 ## CI workflow
 
 GitHub Actions test workflow:

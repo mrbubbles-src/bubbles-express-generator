@@ -78,7 +78,7 @@ When package manager is Bun, generated `package.json` is transformed:
 - JS `dev`: `bun --watch src/app.js`
 - TS `dev`: `bun --watch src/app.ts`
 - `start`: `bun <entry>`
-- `test`: `bun test`
-- `test:watch`: `bun test --watch`
+- `test`: `bunx vitest run`
+- `test:watch`: `bunx vitest`
 - `lint`: `bunx eslint .`
 - TS `typecheck`: `bunx tsc --noEmit`

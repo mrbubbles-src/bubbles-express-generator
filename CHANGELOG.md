@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Fixed Bun package-manager profile to keep Vitest test commands
+  (`bunx vitest run` / `bunx vitest`) so generated project tests match the
+  template test suites.
+
 ## [1.2.0] - 2026-02-14
 
 ### Added
@@ -64,3 +68,6 @@ All notable changes to this project will be documented in this file.
 - Removed direct runtime dependency on `boxen`.
 - Updated GitHub Actions test workflow to use Node.js 22, deterministic installs
   via `npm ci`, and explicit lint-before-test CI checks.
+- Fixed Bun package-manager profile to keep Vitest test commands
+  (`bunx vitest run` / `bunx vitest`) so generated project tests match the
+  template test suites.

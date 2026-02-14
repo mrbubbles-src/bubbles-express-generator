@@ -499,8 +499,8 @@ const applyPackageManagerProfile = async (targetDir, choices) => {
     dev: `bun --watch ${appEntry}`,
     start: `bun ${appEntry}`,
     lint: 'bunx eslint .',
-    test: 'bun test',
-    'test:watch': 'bun test --watch',
+    test: 'bunx vitest run',
+    'test:watch': 'bunx vitest',
   };
 
   if (isTypeScriptTemplate) {

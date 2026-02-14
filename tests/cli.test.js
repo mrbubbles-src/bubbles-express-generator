@@ -290,8 +290,8 @@ describe('bubbles-express CLI', () => {
     expect(projectPackage.scripts.dev).toBe('bun --watch src/app.js');
     expect(projectPackage.scripts.start).toBe('bun src/app.js');
     expect(projectPackage.scripts.lint).toBe('bunx eslint .');
-    expect(projectPackage.scripts.test).toBe('bun test');
-    expect(projectPackage.scripts['test:watch']).toBe('bun test --watch');
+    expect(projectPackage.scripts.test).toBe('bunx vitest run');
+    expect(projectPackage.scripts['test:watch']).toBe('bunx vitest');
     expect(projectPackage.devDependencies.nodemon).toBeUndefined();
     expect(projectPackage.scripts.fullclean).toContain('bun.lock');
     expect(projectPackage.scripts.fullclean).toContain('bun.lockb');
@@ -307,8 +307,8 @@ describe('bubbles-express CLI', () => {
     expect(projectPackage.scripts.start).toBe('bun src/app.ts');
     expect(projectPackage.scripts.lint).toBe('bunx eslint .');
     expect(projectPackage.scripts.typecheck).toBe('bunx tsc --noEmit');
-    expect(projectPackage.scripts.test).toBe('bun test');
-    expect(projectPackage.scripts['test:watch']).toBe('bun test --watch');
+    expect(projectPackage.scripts.test).toBe('bunx vitest run');
+    expect(projectPackage.scripts['test:watch']).toBe('bunx vitest');
     expect(projectPackage.devDependencies.tsx).toBeUndefined();
     expect(projectPackage.devDependencies.typescript).toBeTruthy();
     expect(projectPackage.scripts.fullclean).toContain('bun.lock');

@@ -28,6 +28,8 @@
 By default templates are npm-oriented.
 
 When Bun is selected by CLI, generated project scripts are rewritten to Bun-first commands.
+Test scripts still run on Vitest (`bunx vitest run` / `bunx vitest`) so generated
+tests stay aligned with template test files.
 
 ## Agent instruction templates
 
