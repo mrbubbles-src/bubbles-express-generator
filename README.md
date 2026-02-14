@@ -6,7 +6,7 @@ Scaffold an Express backend with your preferred stack:
 - MongoDB (Mongoose) or PostgreSQL (Drizzle)
 - npm or Bun workflow
 
-![bubbles-express](bubbles-express.png)
+![bubbles-express](assets/images/bubbles-express.png)
 
 ## Table of contents
 
