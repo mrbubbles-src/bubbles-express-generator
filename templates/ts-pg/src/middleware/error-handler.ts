@@ -2,6 +2,11 @@ import type { NextFunction, Request, Response } from 'express';
 
 import type { GlobalError } from '../types/types.js';
 
+/**
+ * Final error middleware that converts internal errors into API responses.
+ *
+ * Usage: register last so route/middleware errors consistently map to JSON.
+ */
 export const errorHandler = (
   err: GlobalError,
   _req: Request,

@@ -13,6 +13,10 @@ vi.mock('update-notifier', () => {
 
 const CLI_PATH = path.resolve(__dirname, '../cli/index.js');
 const TEST_PROJECTS_DIR = path.resolve(__dirname, 'test-projects');
+const AGENT_TEMPLATES_DIR = path.resolve(
+  __dirname,
+  '../templates/agent-instructions',
+);
 
 const runCLI = async (
   args = [],
@@ -55,6 +59,40 @@ const fileExists = async (filePath) => {
 
 const readProjectPackageJson = async (projectDir) => {
   return fs.readJson(path.join(TEST_PROJECTS_DIR, projectDir, 'package.json'));
+};
+
+const withInstructionTemplates = async (files, run) => {
+  const directoryExisted = await fs.pathExists(AGENT_TEMPLATES_DIR);
+  const backups = new Map();
+
+  await fs.ensureDir(AGENT_TEMPLATES_DIR);
+
+  for (const [filename, content] of Object.entries(files)) {
+    const filePath = path.join(AGENT_TEMPLATES_DIR, filename);
+    const existed = await fs.pathExists(filePath);
+    backups.set(filename, existed ? await fs.readFile(filePath, 'utf-8') : null);
+    await fs.writeFile(filePath, content, 'utf-8');
+  }
+
+  try {
+    await run();
+  } finally {
+    for (const [filename, original] of backups.entries()) {
+      const filePath = path.join(AGENT_TEMPLATES_DIR, filename);
+      if (original === null) {
+        await fs.rm(filePath, { force: true });
+      } else {
+        await fs.writeFile(filePath, original, 'utf-8');
+      }
+    }
+
+    if (!directoryExisted) {
+      const remainingFiles = await fs.readdir(AGENT_TEMPLATES_DIR).catch(() => []);
+      if (remainingFiles.length === 0) {
+        await fs.rm(AGENT_TEMPLATES_DIR, { recursive: true, force: true });
+      }
+    }
+  }
 };
 
 describe('bubbles-express CLI', () => {
@@ -297,5 +335,55 @@ describe('bubbles-express CLI', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toMatch(/Run "bun install" when you're ready/i);
     expect(result.stdout).toMatch(/bun run dev/i);
+  });
+
+  it('copies only AGENTS.md when selected', async () => {
+    await withInstructionTemplates(
+      {
+        'AGENTS.md': '# AGENTS\nBe concise.\n',
+        'CLAUDE.md': '# CLAUDE\nBe safe.\n',
+      },
+      async () => {
+        const projectName = 'with-agents-only';
+        const result = await runCLI(
+          [projectName, '--js', '--mongo', '--pm', 'npm'],
+          TEST_PROJECTS_DIR,
+          { MOCK_ADD_AGENTS: '1', MOCK_ADD_CLAUDE: '0' },
+        );
+
+        const agentsPath = path.join(TEST_PROJECTS_DIR, projectName, 'AGENTS.md');
+        const claudePath = path.join(TEST_PROJECTS_DIR, projectName, 'CLAUDE.md');
+
+        expect(result.exitCode).toBe(0);
+        expect(await fileExists(agentsPath)).toBe(true);
+        expect(await fileExists(claudePath)).toBe(false);
+      },
+    );
+  });
+
+  it('copies AGENTS.md and CLAUDE.md when both are selected', async () => {
+    await withInstructionTemplates(
+      {
+        'AGENTS.md': '# AGENTS\nFollow repo standards.\n',
+        'CLAUDE.md': '# CLAUDE\nPlan before edits.\n',
+      },
+      async () => {
+        const projectName = 'with-agents-and-claude';
+        const result = await runCLI(
+          [projectName, '--ts', '--pg', '--pm', 'npm'],
+          TEST_PROJECTS_DIR,
+          { MOCK_ADD_AGENTS: '1', MOCK_ADD_CLAUDE: '1' },
+        );
+
+        const agentsPath = path.join(TEST_PROJECTS_DIR, projectName, 'AGENTS.md');
+        const claudePath = path.join(TEST_PROJECTS_DIR, projectName, 'CLAUDE.md');
+
+        expect(result.exitCode).toBe(0);
+        expect(await fileExists(agentsPath)).toBe(true);
+        expect(await fileExists(claudePath)).toBe(true);
+        expect(await fs.readFile(agentsPath, 'utf-8')).toContain('Follow repo standards');
+        expect(await fs.readFile(claudePath, 'utf-8')).toContain('Plan before edits');
+      },
+    );
   });
 });

@@ -2,6 +2,12 @@ import 'dotenv/config';
 
 import { z } from 'zod';
 
+/**
+ * Central contract for required runtime configuration.
+ *
+ * Usage: update this schema whenever a new env var is introduced so
+ * invalid setups fail fast during startup.
+ */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3001),
@@ -20,4 +26,7 @@ if (!parsed.success) {
   throw new Error(`Invalid environment variables:\n${issues}`);
 }
 
+/**
+ * Typed and validated environment values for the rest of the app.
+ */
 export const env = parsed.data;

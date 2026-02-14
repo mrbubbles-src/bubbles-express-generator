@@ -1,6 +1,11 @@
 import { verifyJWT } from '../lib/auth.js';
 import { Request, Response, NextFunction } from 'express';
 
+/**
+ * Blocks login/register calls when a valid auth cookie already exists.
+ *
+ * Usage: place before login/register handlers to prevent duplicate sessions.
+ */
 export const verifyUserToken = (
   req: Request,
   res: Response,

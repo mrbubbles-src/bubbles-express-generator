@@ -8,6 +8,11 @@ import { db } from '../db/index.js';
 import { usersTable } from '../db/schema.js';
 import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
 
+/**
+ * Shared cookie policy for auth tokens issued by login/register routes.
+ *
+ * Usage: keeps cookie behavior consistent between auth endpoints.
+ */
 const getAuthCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -15,6 +20,11 @@ const getAuthCookieOptions = () => ({
   maxAge: 30 * 24 * 60 * 60 * 1000,
 });
 
+/**
+ * Registers a new account and signs the user in with a fresh token cookie.
+ *
+ * Usage: mounted on `POST /users/register` after validation middleware.
+ */
 export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
@@ -56,6 +66,11 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+/**
+ * Authenticates a user and rotates the auth cookie on successful login.
+ *
+ * Usage: mounted on `POST /users/login` with rate limiting + validation.
+ */
 export const verifyUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;

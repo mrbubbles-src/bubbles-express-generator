@@ -4,6 +4,11 @@ import type { ValidationChain } from 'express-validator';
 import { validationResult } from 'express-validator';
 import createError from 'http-errors';
 
+/**
+ * Combines express-validator chains with a unified 422 error response path.
+ *
+ * Usage: `validateInputs(rules)` returns middleware ready for route wiring.
+ */
 export const validateInputs = (inputs: ValidationChain[]) => {
   return [
     ...inputs,

@@ -16,6 +16,11 @@ const CANCEL_MESSAGE = kleur.yellow('\n⚠️  Project setup canceled.\n');
 const VALID_PACKAGE_MANAGERS = new Set(['bun', 'npm']);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AGENT_INSTRUCTIONS_DIR = path.resolve(
+  __dirname,
+  '..',
+  'templates/agent-instructions',
+);
 const pkg = JSON.parse(
   readFileSync(path.join(__dirname, '..', 'package.json')),
 );
@@ -58,6 +63,9 @@ if (notifier?.update) {
 
 const args = argv.slice(2);
 
+/**
+ * Reads a flag from CLI args in both `--flag value` and `--flag=value` forms.
+ */
 const getFlagValue = (allArgs, flagName) => {
   const equalsPrefix = `${flagName}=`;
   const inline = allArgs.find((arg) => arg.startsWith(equalsPrefix));
@@ -77,6 +85,9 @@ const getFlagValue = (allArgs, flagName) => {
   return nextValue;
 };
 
+/**
+ * Returns non-flag arguments while skipping known flag payloads.
+ */
 const getPositionalArgs = (allArgs) => {
   const positionalArgs = [];
   for (let index = 0; index < allArgs.length; index += 1) {
@@ -109,6 +120,11 @@ const exitWithInvalidPm = (source, receivedValue) => {
   process.exit(1);
 };
 
+/**
+ * Resolves and validates package manager input from env/flags.
+ *
+ * Usage: returns `null` when omitted so interactive mode can prompt.
+ */
 const resolvePackageManager = (rawValue, source) => {
   if (rawValue === null || rawValue === undefined) {
     return null;
@@ -249,6 +265,8 @@ const mockResponses = isTestMode
       db: flags.db ?? process.env.MOCK_DB ?? 'mongo',
       packageManager:
         flags.packageManager ?? process.env.MOCK_PM ?? process.env.BUBBLES_PM ?? 'npm',
+      addAgents: process.env.MOCK_ADD_AGENTS === '1',
+      addClaude: process.env.MOCK_ADD_CLAUDE === '1',
     }
   : null;
 
@@ -299,6 +317,22 @@ if (!flags.packageManager) {
   });
 }
 
+if (!isTestMode && isInteractive) {
+  promptQuestions.push({
+    type: 'confirm',
+    name: 'addAgents',
+    message: 'Do you want to add an AGENTS.md file to your project root?',
+    initial: false,
+  });
+
+  promptQuestions.push({
+    type: 'confirm',
+    name: 'addClaude',
+    message: 'Do you want to add a CLAUDE.md file to your project root?',
+    initial: false,
+  });
+}
+
 let response;
 
 if (isTestMode) {
@@ -311,6 +345,8 @@ response.projectName = flags.projectName ?? response.projectName;
 response.language = flags.language ?? response.language;
 response.db = flags.db ?? response.db;
 response.packageManager = flags.packageManager ?? response.packageManager;
+response.addAgents = Boolean(response.addAgents ?? false);
+response.addClaude = Boolean(response.addClaude ?? false);
 
 const skipInstallFromEnv = process.env.BUBBLES_SKIP_INSTALL;
 const shouldSkipInstall =
@@ -318,6 +354,9 @@ const shouldSkipInstall =
   skipInstallFromEnv === '1' ||
   (skipInstallFromEnv !== '0' && isTestMode);
 
+/**
+ * Best-effort recursive delete with ENOTEMPTY retries for busy filesystems.
+ */
 const removePath = async (targetPath) => {
   try {
     await fs.rm(targetPath, {
@@ -373,6 +412,9 @@ const askForProjectName = async (currentName) => {
   return newName?.trim();
 };
 
+/**
+ * Handles the dangerous `.` target flow with explicit user intent.
+ */
 const askForDotDirectoryAction = async (targetDir) => {
   if (isTestMode) {
     if (process.env.MOCK_DOT_ACTION) {
@@ -414,6 +456,9 @@ const askForDotDirectoryAction = async (targetDir) => {
   return dotAction;
 };
 
+/**
+ * Requires a typed safety token before deleting current-directory contents.
+ */
 const confirmDotOverwrite = async (targetDir) => {
   if (isTestMode) {
     if (process.env.MOCK_DOT_CONFIRM !== undefined) {
@@ -446,6 +491,9 @@ const shouldOverwriteNamedDirectory = async (targetDir) => {
   return overwrite;
 };
 
+/**
+ * Installs generated project dependencies using the selected package manager.
+ */
 const installDependencies = async (targetDir, packageManager) => {
   const command = packageManager === 'bun' ? 'bun' : 'npm';
   const installArgs = ['install'];
@@ -487,6 +535,9 @@ const installDependencies = async (targetDir, packageManager) => {
   spinner.succeed(kleur.green(`✅ Dependencies installed (${command} install)`));
 };
 
+/**
+ * Rewrites scripts/dev deps for Bun-native projects after scaffolding.
+ */
 const applyPackageManagerProfile = async (targetDir, choices) => {
   if (choices.packageManager !== 'bun') {
     return;
@@ -527,6 +578,38 @@ const applyPackageManagerProfile = async (targetDir, choices) => {
   await fs.writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 };
 
+const copyOptionalInstructionFiles = async (targetDir, choices) => {
+  const filesToCopy = [];
+  if (choices.addAgents) {
+    filesToCopy.push('AGENTS.md');
+  }
+  if (choices.addClaude) {
+    filesToCopy.push('CLAUDE.md');
+  }
+
+  for (const filename of filesToCopy) {
+    const sourcePath = path.join(AGENT_INSTRUCTIONS_DIR, filename);
+    const destinationPath = path.join(targetDir, filename);
+
+    try {
+      await fs.copyFile(sourcePath, destinationPath);
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        console.log(
+          kleur.yellow(
+            `⚠️  Skipped ${filename}: template not found at templates/agent-instructions/${filename}.`,
+          ),
+        );
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
+/**
+ * End-to-end scaffolding workflow (resolve target, copy template, finalize setup).
+ */
 const createProject = async (choices) => {
   try {
     if (
@@ -642,6 +725,7 @@ const createProject = async (choices) => {
     };
 
     await replacePlaceholders(targetDir);
+    await copyOptionalInstructionFiles(targetDir, choices);
     await applyPackageManagerProfile(targetDir, choices);
 
     if (shouldSkipInstall) {

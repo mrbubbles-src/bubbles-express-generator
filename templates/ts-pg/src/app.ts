@@ -15,6 +15,12 @@ import { errorHandler } from './middleware/error-handler.js';
 import { notFoundHandler } from './middleware/not-found.js';
 import { router as userRouter } from './routes/user.js';
 
+/**
+ * Normalizes CORS origins from env and fails closed in production.
+ *
+ * Usage: called during app bootstrap to produce a value accepted by
+ * the `cors` middleware `origin` option.
+ */
 const resolveAllowedOrigins = (): string[] => {
   const configuredOrigins =
     env.CORS_ORIGIN?.split(',')
@@ -32,6 +38,12 @@ const resolveAllowedOrigins = (): string[] => {
   return ['http://localhost:3000'];
 };
 
+/**
+ * Creates and configures the Express app without starting the server.
+ *
+ * Usage: import in tests to get a fully wired app instance without
+ * opening a network port.
+ */
 export const createApp = () => {
   const app = express();
   const allowedOrigins = resolveAllowedOrigins();
@@ -87,12 +99,22 @@ export const createApp = () => {
 
 export const app = createApp();
 
+/**
+ * Starts the HTTP server after required runtime dependencies are ready.
+ *
+ * Usage: invoked only when this module is executed directly.
+ */
 export const startServer = (): void => {
   app.listen(env.PORT, () => {
     console.log(`🫡 Server is running at: http://localhost:${env.PORT}`);
   });
 };
 
+/**
+ * Performs graceful shutdown by closing database resources first.
+ *
+ * Usage: bound to process signals to avoid dropping in-flight work.
+ */
 const shutdown = async (signal: string): Promise<void> => {
   try {
     console.log(`\n${signal} received. Closing database connection...`);

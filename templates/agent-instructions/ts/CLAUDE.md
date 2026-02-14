@@ -1,0 +1,5 @@
+- Use Context7 MCP only when unsure or dealing with version-sensitive APIs.
+- Do not use MCPs for basic TS, refactors, or naming.
+- Do not use `any`.
+- JSDoc should explain intent and usage, not obvious code.
+- Run `typecheck`/`lint` scripts when checking for errors and report any errors exactly as shown.

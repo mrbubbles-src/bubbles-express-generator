@@ -1,5 +1,10 @@
 import { model, Schema } from 'mongoose';
 
+/**
+ * Canonical persistence schema for local-auth users.
+ *
+ * Usage: align validation rules and JWT payload shape with this schema.
+ */
 const userSchema = new Schema({
   username: {
     type: String,
@@ -33,4 +38,7 @@ const userSchema = new Schema({
   },
 });
 
+/**
+ * Reusable mongoose model for user account operations.
+ */
 export default model('User', userSchema);
