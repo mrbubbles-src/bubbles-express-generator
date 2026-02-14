@@ -1,63 +1,93 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import 'dotenv/config';
+import pinoHttp from 'pino-http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import db from './db/db.js';
+import { env } from './config/env.js';
+import { notFoundHandler } from './middleware/not-found.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { router as userRouter } from './routes/user.js';
 
-const app = express();
-const isProduction = process.env.NODE_ENV === 'production';
-const configuredOrigins =
-  process.env.CORS_ORIGIN?.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean) ?? [];
-const allowedOrigins =
-  configuredOrigins.length > 0
-    ? configuredOrigins
-    : isProduction
-      ? []
-      : ['http://localhost:3000'];
+const resolveAllowedOrigins = () => {
+  const configuredOrigins =
+    env.CORS_ORIGIN?.split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean) ?? [];
 
-if (isProduction && allowedOrigins.length === 0) {
-  throw new Error('CORS_ORIGIN must be set in production');
-}
-
-if (process.env.TRUST_PROXY === '1') {
-  app.set('trust proxy', 1);
-}
-
-app.use(express.json());
-
-app.use(
-  cors({
-    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
-    credentials: true,
-  }),
-);
-
-app.use(cookieParser());
-
-const PORT = process.env.PORT || 3001;
-
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
-});
-
-app.use('/users', userRouter);
-
-app.use(errorHandler);
-
-const startServer = async () => {
-  try {
-    await db.connect();
-    app.listen(PORT, () => {
-      console.log(`🫡 Server is running at: http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('Error while starting server:', error);
-    process.exit(1);
+  if (env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
+    throw new Error('CORS_ORIGIN must be set in production');
   }
+
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins;
+  }
+
+  return ['http://localhost:3000'];
+};
+
+export const createApp = () => {
+  const app = express();
+  const allowedOrigins = resolveAllowedOrigins();
+
+  if (env.TRUST_PROXY === '1') {
+    app.set('trust proxy', 1);
+  }
+
+  app.use(
+    pinoHttp({
+      transport:
+        env.NODE_ENV === 'development'
+          ? {
+              target: 'pino-pretty',
+              options: { colorize: true, translateTime: 'SYS:standard' },
+            }
+          : undefined,
+    }),
+  );
+  app.use(helmet());
+  app.use(express.json());
+  app.use(
+    cors({
+      origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+      credentials: true,
+    }),
+  );
+  app.use(cookieParser());
+
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
+  app.get('/ready', async (_req, res) => {
+    try {
+      await db.ping();
+      res.status(200).json({ status: 'ready' });
+    } catch {
+      res.status(503).json({ status: 'not_ready' });
+    }
+  });
+
+  app.get('/', (_req, res) => {
+    res.send('Hello, World!');
+  });
+
+  app.use('/users', userRouter);
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+};
+
+export const app = createApp();
+
+export const startServer = async () => {
+  await db.connect();
+  return app.listen(env.PORT, () => {
+    console.log(`🫡 Server is running at: http://localhost:${env.PORT}`);
+  });
 };
 
 const shutdown = async (signal) => {
@@ -71,12 +101,21 @@ const shutdown = async (signal) => {
   }
 };
 
-process.on('SIGINT', () => {
-  void shutdown('SIGINT');
-});
+const isDirectRun =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-process.on('SIGTERM', () => {
-  void shutdown('SIGTERM');
-});
+if (isDirectRun) {
+  startServer().catch((error) => {
+    console.error('Error while starting server:', error);
+    process.exit(1);
+  });
 
-void startServer();
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
+
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
+}

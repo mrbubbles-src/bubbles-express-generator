@@ -1,20 +1,20 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import 'dotenv/config';
+import { env } from '../config/env.js';
 import * as schema from './schema.js';
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error(
-    'DATABASE_URL environment variable is not set or is undefined',
-  );
-}
-
-const client = postgres(databaseUrl, { prepare: false, max: 5 });
+const client = postgres(env.DATABASE_URL, { prepare: false, max: 5 });
 
 export const db = drizzle(client, {
   schema: {
     ...schema,
   },
 });
+
+export const pingDatabase = async () => {
+  await client`select 1`;
+};
+
+export const closeDatabase = async () => {
+  await client.end();
+};

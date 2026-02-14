@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "dev": "node cli/index.js",
-    "test": "npx vitest run --testTimeout=60000",
+    "test": "npx vitest run tests/cli.test.js --testTimeout=60000",
     "initialrelease": "npm publish --access public",
     "patch": "npm version patch && git add . && git commit -m 'feat: bump version' && git push --follow-tags && npm publish"
   },

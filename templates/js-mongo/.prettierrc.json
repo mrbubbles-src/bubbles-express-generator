@@ -1,11 +1,23 @@
 {
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "printWidth": 100,
   "trailingComma": "all",
   "tabWidth": 2,
   "semi": true,
   "singleQuote": true,
   "bracketSpacing": true,
-  "bracketSameLine": true,
+  "bracketSameLine": false,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "plugins": []
+  "importOrderParserPlugins": ["importAttributes", "explicitResourceManagement"],
+  "importOrder": [
+    "^node:(.*)$",
+    "<BUILTIN_MODULES>",
+    "",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^[.][.]/",
+    "^[.]/"
+  ],
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"]
 }

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import 'dotenv/config';
+import { env } from '../config/env.js';
 
 let hasConnectionListeners = false;
 
@@ -32,7 +32,7 @@ export default {
     }
 
     attachConnectionListeners();
-    await mongoose.connect(process.env.MONGO_DB_URI);
+    await mongoose.connect(env.MONGO_DB_URI);
   },
   close: async () => {
     if (mongoose.connection.readyState === 0) {
@@ -40,5 +40,12 @@ export default {
     }
 
     await mongoose.disconnect();
+  },
+  ping: async (): Promise<void> => {
+    if (mongoose.connection.readyState !== 1 || !mongoose.connection.db) {
+      throw new Error('MongoDB is not connected');
+    }
+
+    await mongoose.connection.db.admin().ping();
   },
 };

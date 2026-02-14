@@ -6,16 +6,10 @@ export const verifyUserToken = (req, res, next) => {
     return next();
   }
   try {
-    const payload = verifyJWT(token);
-
-    if (payload.role === 'admin') {
-      return res.redirect('/admin/dashboard');
-    }
-
-    return res.redirect('/');
+    verifyJWT(token);
+    return res.status(409).json({ message: 'Already authenticated' });
   } catch {
-    const error = new Error('Ungültiger Token');
-    error.statusCode = 401;
-    return next(error);
+    res.clearCookie('token');
+    return next();
   }
 };
