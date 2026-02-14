@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
   - `testing.md`
   - `dependencies.md`
   - `output-style.md`
+  - `contributing.md` (PR description guidelines and checklist).
 
 ### Changed
 

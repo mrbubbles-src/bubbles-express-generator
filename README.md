@@ -190,12 +190,14 @@ If selected, files are copied to the generated project root from:
 - `documentation/project-docs/configuration.md`
 - `documentation/project-docs/testing.md`
 - `documentation/project-docs/dependencies.md`
+- `documentation/project-docs/contributing.md`
 
 ## Contributing
 
 - Open an issue for bugs or feature ideas.
 - Keep PRs focused and include tests for behavior changes.
-- Run lint and tests before opening a PR.
+- Run `npm run lint` and `npm test` before opening a PR.
+- See [documentation/project-docs/contributing.md](documentation/project-docs/contributing.md) for PR description guidelines.
 
 ## License and credits
 
