@@ -143,6 +143,7 @@ describe('bubbles-express CLI', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toMatch(/Project created successfully/i);
+      expect(result.stdout).toMatch(/Small scaffold\. Big momentum\./i);
       expect(result.stdout).toMatch(/Skipping dependency installation/i);
       expect(result.stdout).toMatch(/Package manager:\s+npm/i);
       expect(exists).toBe(true);
@@ -235,6 +236,17 @@ describe('bubbles-express CLI', () => {
       expect(await fileExists(nestedFile)).toBe(false);
       expect(await fileExists(path.join(testDir, appEntry))).toBe(true);
     });
+  });
+
+  it('prints minimal help output without boxed formatting', async () => {
+    const result = await runCLI(['--help']);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toMatch(/Bubbles' Express Generator/i);
+    expect(result.stdout).toMatch(/Usage/i);
+    expect(result.stdout).toMatch(/Flags/i);
+    expect(result.stdout).toMatch(/Examples/i);
+    expect(result.stdout).not.toMatch(/╔|╗|╚|╝|═|║/);
   });
 
   it('supports --skip-install in non-test mode', async () => {

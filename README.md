@@ -12,6 +12,7 @@ Scaffold an Express backend with your preferred stack:
 
 - [Installation](#installation)
 - [Usage examples](#usage-examples)
+- [CLI output style](#cli-output-style)
 - [Architecture and folder structure](#architecture-and-folder-structure)
 - [Configuration and env variables](#configuration-and-env-variables)
 - [Testing and quality checks](#testing-and-quality-checks)
@@ -67,6 +68,29 @@ bunx --bun bubbles-express my-api --js --mongo --pm bun --skip-install
 - `js-pg`
 - `ts-mongo`
 - `ts-pg`
+
+## CLI output style
+
+The CLI favors concise, line-based output:
+
+- minimal startup context
+- plain help sections (`Usage`, `Flags`, `Examples`)
+- direct danger messaging for destructive flows
+- compact success summary with one signature line
+
+Example success output:
+
+```text
+Project created successfully.
+Project folder: my-api
+Language: ts
+Database: pg
+Package manager: npm
+Small scaffold. Big momentum.
+Next steps:
+  cd my-api
+  npm run dev
+```
 
 ## Architecture and folder structure
 
@@ -161,6 +185,7 @@ If selected, files are copied to the generated project root from:
 
 - `documentation/project-docs/structure.md`
 - `documentation/project-docs/cli-behavior.md`
+- `documentation/project-docs/output-style.md`
 - `documentation/project-docs/templates.md`
 - `documentation/project-docs/configuration.md`
 - `documentation/project-docs/testing.md`

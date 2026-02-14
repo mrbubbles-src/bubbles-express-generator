@@ -3,3 +3,23 @@
 - Do not use `any`.
 - JSDoc should explain intent and usage, not obvious code.
 - Run `typecheck`/`lint` scripts when checking for errors and report any errors exactly as shown.
+- Always update the documentation as necessary, even if not explicitly stated by the user.
+- Always update the changelog as necessary, even if not explicitly stated by the user.
+- Always update the README.md as necessary, even if not explicitly stated by the user.
+- Store project documentation under `documentation/project-docs/`; create folder if missing.
+- Split docs into focused files (e.g., `components.md`, `routes.md`, `dependencies.md`, `structure.md`).
+- Keep documentation human-readable and concise.
+- Align documentation with the current codebase.
+- Always update `CHANGELOG.md`.
+- Add anything to the documentation, you think will be highly beneficial to developers, newly coming into or coming back to the project. Do this always, even if not explicitly mentioned by the user.
+- Always updated and expand the documentation as necessary, even if not explicitly stated by the user, this includes updates to README.md.
+- README.md should include:
+  - Installation steps
+  - Usage examples
+  - Architecture and folder structure
+  - Configuration and env variables
+  - Testing instructions
+  - Contribution guidelines
+  - License and credits
+- If no `/documentation/project-docs/` folder exists, create it.
+- If no `CHANGELOG.md` file exists, create it.

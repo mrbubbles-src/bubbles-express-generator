@@ -4,7 +4,6 @@
 
 Runtime:
 
-- `boxen`
 - `kleur`
 - `ora`
 - `prompts`

@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file.
   - `configuration.md`
   - `testing.md`
   - `dependencies.md`
+  - `output-style.md`
 
 ### Changed
 
@@ -50,3 +51,13 @@ All notable changes to this project will be documented in this file.
   - configuration/env docs
   - testing/quality commands
   - contribution and license/credits sections
+- Minimal-but-interesting CLI output refresh:
+  - removed boxed terminal UI in favor of concise line-based messaging
+  - compact one-line update notification output
+  - plain help sections (`Usage`, `Flags`, `Examples`)
+  - simplified intro and danger-zone copy with unchanged safety behavior
+  - concise success summary with signature line:
+    `Small scaffold. Big momentum.`
+- Updated tests to validate the new help/success output contract.
+- Updated README and project docs to match the refreshed CLI UX.
+- Removed direct runtime dependency on `boxen`.

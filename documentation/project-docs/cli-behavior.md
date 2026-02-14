@@ -15,6 +15,18 @@ Package manager precedence:
 
 In non-interactive mode, package manager must be provided by flag or env var.
 
+## Output style
+
+- Output is line-based and concise by default (no boxed screens).
+- Help uses plain sections: `Usage`, `Flags`, `Examples`.
+- Intro output uses 1-3 lines:
+  - flag-driven runs show a compact scaffold summary
+  - interactive runs show a short prompt-oriented welcome
+- Update notifications are compact one-liners with current/latest versions and
+  install commands.
+- Success output includes one signature copy line:
+  - `Small scaffold. Big momentum.`
+
 ## Target directory safety
 
 Behavior when target exists and is non-empty:
@@ -53,6 +65,11 @@ Install is skipped when:
 - `--skip-install` is present
 - `BUBBLES_SKIP_INSTALL=1`
 - test mode defaults
+
+Install spinner messages are short and status-focused:
+
+- `Installing dependencies (...)`
+- `Dependencies installed (...)`
 
 ## Bun profile transform
 

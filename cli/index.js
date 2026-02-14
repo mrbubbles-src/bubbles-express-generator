@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import prompts from 'prompts';
 import kleur from 'kleur';
-import boxen from 'boxen';
 import ora from 'ora';
 import { argv } from 'process';
 
@@ -40,23 +39,8 @@ const ask = async (questions) => prompts(questions, promptOptions);
 
 if (notifier?.update) {
   console.log(
-    boxen(
-      [
-        `🔔 Update available: ${kleur.dim(notifier.update.current)} ${kleur
-          .green()
-          .bold('→')} ${kleur.green().bold(notifier.update.latest)}`,
-        '',
-        `📦 npm: ${kleur.green().bold(`npm i -g ${notifier.update.name}`)}`,
-        `📦 Bun: ${kleur.green().bold(`bun add -g ${notifier.update.name}`)}`,
-      ].join('\n'),
-      {
-        padding: 1,
-        margin: 1,
-        borderStyle: 'double',
-        borderColor: 'red',
-        title: '!! Update available !!',
-        titleAlignment: 'center',
-      },
+    kleur.yellow(
+      `Update available ${notifier.update.current} -> ${notifier.update.latest} | npm i -g ${notifier.update.name} | bun add -g ${notifier.update.name}`,
     ),
   );
 }
@@ -153,37 +137,27 @@ const isInteractive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
 
 if (args.includes('-h') || args.includes('--help')) {
   console.log(
-    boxen(
-      [
-        kleur.magenta().bold("🧰 Bubbles' Express Generator — Help"),
-        '',
-        kleur.white('Usage:'),
-        '  npx bubbles-express [project-name|.] [flags]',
-        '  bunx --bun bubbles-express [project-name|.] [flags]',
-        '',
-        kleur.white('Flags:'),
-        '  --ts       Use TypeScript',
-        '  --js       Use JavaScript',
-        '  --mongo    Use MongoDB (Mongoose)',
-        '  --pg       Use PostgreSQL (Supabase + Drizzle)',
-        '  --pm <bun|npm> Choose package manager (interactive prompt by default)',
-        '  --skip-install Skip dependency installation after scaffolding',
-        '  -h, --help Show this help message',
-        '',
-        kleur.gray('Example:'),
-        '  npx bubbles-express my-api --ts --mongo',
-        '  npx bubbles-express . --js --pg --pm npm',
-        '  bunx --bun bubbles-express my-api --ts --pg --pm bun --skip-install',
-      ].join('\n'),
-      {
-        padding: 1,
-        margin: 1,
-        borderStyle: 'double',
-        borderColor: 'magenta',
-        title: 'Help',
-        titleAlignment: 'center',
-      },
-    ),
+    [
+      kleur.magenta().bold("Bubbles' Express Generator"),
+      '',
+      kleur.white().bold('Usage'),
+      '  npx bubbles-express [project-name|.] [flags]',
+      '  bunx --bun bubbles-express [project-name|.] [flags]',
+      '',
+      kleur.white().bold('Flags'),
+      '  --ts                 Use TypeScript',
+      '  --js                 Use JavaScript',
+      '  --mongo              Use MongoDB (Mongoose)',
+      '  --pg                 Use PostgreSQL (Supabase + Drizzle)',
+      '  --pm <bun|npm>       Choose package manager',
+      '  --skip-install       Skip dependency installation',
+      '  -h, --help           Show this help message',
+      '',
+      kleur.white().bold('Examples'),
+      '  npx bubbles-express my-api --ts --mongo',
+      '  npx bubbles-express . --js --pg --pm npm',
+      '  bunx --bun bubbles-express my-api --ts --pg --pm bun --skip-install',
+    ].join('\n'),
   );
   process.exit(0);
 }
@@ -221,41 +195,21 @@ const flags = {
 
 if (!isTestMode) {
   const hasFlags = flags.language && flags.db;
-  const skipInstallInfo = flags.skipInstall
-    ? kleur.gray('\ninstall: skipped (--skip-install)')
-    : '';
-  const introMessage = hasFlags
-    ? `${kleur
-        .green()
-        .bold('🚀 Oh, I see you know what you want — let’s get started!')}
+  const introLines = hasFlags
+    ? [
+        kleur.green().bold('Scaffolding with your selected flags.'),
+        kleur.gray(
+          `project: ${flags.projectName} | language: ${flags.language} | database: ${flags.db} | pm: ${flags.packageManager ?? 'prompt'}`,
+        ),
+        ...(flags.skipInstall ? [kleur.gray('install: skipped (--skip-install)')] : []),
+      ]
+    : [
+        kleur.magenta().bold("Bubbles' Express Generator"),
+        'Answer a few prompts to scaffold your API.',
+        kleur.gray('Need help? Run: npx bubbles-express -h'),
+      ];
 
-${kleur.dim(
-      `> npx bubbles-express ${flags.projectName} --${flags.language} --${flags.db}`,
-)}
-
-${kleur.gray(
-  `project: ${flags.projectName} | language: ${flags.language} | database: ${flags.db} | pm: ${flags.packageManager ?? 'prompt'}`,
-)}${skipInstallInfo}`
-    : `👋 Welcome to ${kleur.magenta().bold("Bubbles' Express Generator")}!
-
-${kleur.white("Answer a few questions and we'll get you set up quickly.")}
-
-💡 ${kleur.italic('Need help? Stop and run')} ${kleur.bold(
-        'npx bubbles-express -h',
-      )}
-`;
-
-  console.log(
-    boxen(introMessage, {
-      padding: 1,
-      margin: 1,
-      borderStyle: 'double',
-      borderColor: hasFlags ? 'green' : 'magenta',
-      title: hasFlags ? 'Auto Setup' : "Let's get started",
-      titleAlignment: 'center',
-      textAlignment: 'left',
-    }),
-  );
+  console.log(`\n${introLines.join('\n')}\n`);
 }
 
 const mockResponses = isTestMode
@@ -427,20 +381,11 @@ const askForDotDirectoryAction = async (targetDir) => {
   }
 
   const warning = [
-    `You are about to overwrite files in ${kleur.bold(targetDir)}.`,
-    kleur.red().bold('This action is NOT reversible.'),
+    kleur.red().bold(`Danger: overwrite files in ${targetDir}`),
+    kleur.red('This action is irreversible.'),
   ].join('\n');
 
-  console.log(
-    boxen(warning, {
-      padding: 1,
-      margin: 1,
-      borderStyle: 'double',
-      borderColor: 'red',
-      title: 'Danger Zone',
-      titleAlignment: 'center',
-    }),
-  );
+  console.log(`\n${warning}\n`);
 
   const { dotAction } = await ask({
     type: 'select',
@@ -497,7 +442,7 @@ const shouldOverwriteNamedDirectory = async (targetDir) => {
 const installDependencies = async (targetDir, packageManager) => {
   const command = packageManager === 'bun' ? 'bun' : 'npm';
   const installArgs = ['install'];
-  const spinner = ora(`📦 Installing dependencies (${command} install)...`).start();
+  const spinner = ora(`Installing dependencies (${command} install)...`).start();
 
   await new Promise((resolve, reject) => {
     const child = spawn(command, installArgs, {
@@ -532,7 +477,7 @@ const installDependencies = async (targetDir, packageManager) => {
     });
   });
 
-  spinner.succeed(kleur.green(`✅ Dependencies installed (${command} install)`));
+  spinner.succeed(kleur.green(`Dependencies installed (${command} install)`));
 };
 
 /**
@@ -765,41 +710,22 @@ const createProject = async (choices) => {
       ? `  ${kleur.dim(installCommand)}\n`
       : '';
 
-    const summaryBox = boxen(
-      [
-        `🎉 ${kleur.bold('Project created successfully!')}`,
-        `${kleur.gray(
-          `> npx bubbles-express ${choices.projectName} --${choices.language} --${choices.db} --pm ${choices.packageManager}`,
-        )}`,
-        '',
-        `${kleur.bold('📂 Project Folder:')} ${kleur.green(
-          path.basename(targetDir),
-        )}`,
-        `${kleur.bold('🛠️  Language:')}       ${kleur.yellow(
-          choices.language,
-        )}`,
-        `${kleur.bold('🗃️  Database:')}       ${kleur.cyan(choices.db)}`,
-        `${kleur.bold('📦 Package manager:')} ${kleur.magenta(choices.packageManager)}`,
-        '',
-        kleur.italic('Happy coding! 🚀'),
-        '',
-        kleur.bold('👉 Next steps:'),
-        ...(installHint ? [installHint.trimEnd()] : []),
-        ...nextSteps,
-      ].join('\n'),
-      {
-        padding: { top: 1, bottom: 1, left: 2, right: 2 },
-        margin: 1,
-        borderStyle: 'double',
-        borderColor: 'green',
-        title: 'Setup Complete',
-        titleAlignment: 'center',
-        textAlignment: 'left',
-        align: 'left',
-      },
-    );
+    const summaryLines = [
+      kleur.green().bold('Project created successfully.'),
+      kleur.gray(
+        `> npx bubbles-express ${choices.projectName} --${choices.language} --${choices.db} --pm ${choices.packageManager}`,
+      ),
+      `Project folder: ${kleur.green(path.basename(targetDir))}`,
+      `Language: ${kleur.yellow(choices.language)}`,
+      `Database: ${kleur.cyan(choices.db)}`,
+      `Package manager: ${kleur.magenta(choices.packageManager)}`,
+      kleur.italic('Small scaffold. Big momentum.'),
+      'Next steps:',
+      ...(installHint ? [installHint.trimEnd()] : []),
+      ...nextSteps,
+    ];
 
-    console.log(summaryBox);
+    console.log(`\n${summaryLines.join('\n')}\n`);
   } catch (error) {
     console.error('Error creating project:', error);
     return;

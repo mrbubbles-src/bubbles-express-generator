@@ -23,6 +23,16 @@ bubbles-express-generator/
 - `tests/`: integration tests for CLI behavior.
 - `documentation/project-docs/`: maintainers' focused documentation.
 
+## Focused documentation files
+
+- `documentation/project-docs/cli-behavior.md`
+- `documentation/project-docs/output-style.md`
+- `documentation/project-docs/configuration.md`
+- `documentation/project-docs/templates.md`
+- `documentation/project-docs/testing.md`
+- `documentation/project-docs/dependencies.md`
+- `documentation/project-docs/structure.md`
+
 ## Template variants
 
 - `templates/js-mongo`
