@@ -27,6 +27,7 @@
   "scripts": {
     "dev": "node cli/index.js",
     "dev:bun": "bun cli/index.js",
+    "lint": "eslint cli tests",
     "test": "npx vitest run tests/cli.test.js --testTimeout=60000",
     "test:bun": "bun x vitest run tests/cli.test.js --testTimeout=60000",
     "initialrelease": "npm publish --access public",
@@ -54,8 +55,11 @@
     "update-notifier": "^7.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "execa": "^9.6.1",
+    "eslint": "^9.38.0",
     "fs-extra": "^11.3.3",
+    "globals": "^16.4.0",
     "vitest": "^4.0.18"
   }
 }

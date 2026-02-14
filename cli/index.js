@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import updateNotifier from 'update-notifier';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -553,9 +553,14 @@ const applyPackageManagerProfile = async (targetDir, choices) => {
     ...packageJson.scripts,
     dev: `bun --watch ${appEntry}`,
     start: `bun ${appEntry}`,
+    lint: 'bunx eslint .',
     test: 'bun test',
     'test:watch': 'bun test --watch',
   };
+
+  if (isTypeScriptTemplate) {
+    packageJson.scripts.typecheck = 'bunx tsc --noEmit';
+  }
 
   if (packageJson.scripts?.fullclean) {
     const lockfiles = ['bun.lock', 'bun.lockb'];
@@ -587,23 +592,30 @@ const copyOptionalInstructionFiles = async (targetDir, choices) => {
     filesToCopy.push('CLAUDE.md');
   }
 
+  const languageInstructionsDir = path.join(
+    AGENT_INSTRUCTIONS_DIR,
+    choices.language,
+  );
+
   for (const filename of filesToCopy) {
-    const sourcePath = path.join(AGENT_INSTRUCTIONS_DIR, filename);
+    const sourceCandidates = [
+      path.join(languageInstructionsDir, filename),
+      path.join(AGENT_INSTRUCTIONS_DIR, filename),
+    ];
+    const sourcePath =
+      sourceCandidates.find((candidate) => existsSync(candidate)) ?? null;
     const destinationPath = path.join(targetDir, filename);
 
-    try {
-      await fs.copyFile(sourcePath, destinationPath);
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        console.log(
-          kleur.yellow(
-            `⚠️  Skipped ${filename}: template not found at templates/agent-instructions/${filename}.`,
-          ),
-        );
-        continue;
-      }
-      throw error;
+    if (!sourcePath) {
+      console.log(
+        kleur.yellow(
+          `⚠️  Skipped ${filename}: template not found at templates/agent-instructions/${choices.language}/${filename}.`,
+        ),
+      );
+      continue;
     }
+
+    await fs.copyFile(sourcePath, destinationPath);
   }
 };
 

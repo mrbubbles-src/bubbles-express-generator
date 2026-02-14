@@ -13,7 +13,7 @@ vi.mock('update-notifier', () => {
 
 const CLI_PATH = path.resolve(__dirname, '../cli/index.js');
 const TEST_PROJECTS_DIR = path.resolve(__dirname, 'test-projects');
-const AGENT_TEMPLATES_DIR = path.resolve(
+const AGENT_TEMPLATES_ROOT = path.resolve(
   __dirname,
   '../templates/agent-instructions',
 );
@@ -61,14 +61,15 @@ const readProjectPackageJson = async (projectDir) => {
   return fs.readJson(path.join(TEST_PROJECTS_DIR, projectDir, 'package.json'));
 };
 
-const withInstructionTemplates = async (files, run) => {
-  const directoryExisted = await fs.pathExists(AGENT_TEMPLATES_DIR);
+const withInstructionTemplates = async (language, files, run) => {
+  const languageTemplateDir = path.join(AGENT_TEMPLATES_ROOT, language);
+  const directoryExisted = await fs.pathExists(languageTemplateDir);
   const backups = new Map();
 
-  await fs.ensureDir(AGENT_TEMPLATES_DIR);
+  await fs.ensureDir(languageTemplateDir);
 
   for (const [filename, content] of Object.entries(files)) {
-    const filePath = path.join(AGENT_TEMPLATES_DIR, filename);
+    const filePath = path.join(languageTemplateDir, filename);
     const existed = await fs.pathExists(filePath);
     backups.set(filename, existed ? await fs.readFile(filePath, 'utf-8') : null);
     await fs.writeFile(filePath, content, 'utf-8');
@@ -78,7 +79,7 @@ const withInstructionTemplates = async (files, run) => {
     await run();
   } finally {
     for (const [filename, original] of backups.entries()) {
-      const filePath = path.join(AGENT_TEMPLATES_DIR, filename);
+      const filePath = path.join(languageTemplateDir, filename);
       if (original === null) {
         await fs.rm(filePath, { force: true });
       } else {
@@ -87,9 +88,9 @@ const withInstructionTemplates = async (files, run) => {
     }
 
     if (!directoryExisted) {
-      const remainingFiles = await fs.readdir(AGENT_TEMPLATES_DIR).catch(() => []);
+      const remainingFiles = await fs.readdir(languageTemplateDir).catch(() => []);
       if (remainingFiles.length === 0) {
-        await fs.rm(AGENT_TEMPLATES_DIR, { recursive: true, force: true });
+        await fs.rm(languageTemplateDir, { recursive: true, force: true });
       }
     }
   }
@@ -122,7 +123,12 @@ describe('bubbles-express CLI', () => {
       const match = /^([a-z]+)-([a-z]+)/.exec(dir);
       return match ? { language: match[1], db: match[2] } : null;
     })
-    .filter(Boolean);
+    .filter(
+      (combo) =>
+        combo &&
+        ['js', 'ts'].includes(combo.language) &&
+        ['mongo', 'pg'].includes(combo.db),
+    );
 
   combos.forEach(({ language, db }) => {
     const langFlag = `--${language}`;
@@ -143,11 +149,13 @@ describe('bubbles-express CLI', () => {
       expect(await fileExists(path.join(TEST_PROJECTS_DIR, customName, appEntry))).toBe(
         true,
       );
+      expect(projectPackage.scripts.lint).toBe('eslint .');
       if (language === 'js') {
         expect(projectPackage.scripts.dev).toContain('nodemon');
         expect(projectPackage.devDependencies.nodemon).toBeTruthy();
       } else {
         expect(projectPackage.scripts.dev).toContain('tsx watch src/app.ts');
+        expect(projectPackage.scripts.typecheck).toBe('tsc --noEmit');
         expect(projectPackage.devDependencies.tsx).toBeTruthy();
       }
     });
@@ -269,6 +277,7 @@ describe('bubbles-express CLI', () => {
     expect(result.exitCode).toBe(0);
     expect(projectPackage.scripts.dev).toBe('bun --watch src/app.js');
     expect(projectPackage.scripts.start).toBe('bun src/app.js');
+    expect(projectPackage.scripts.lint).toBe('bunx eslint .');
     expect(projectPackage.scripts.test).toBe('bun test');
     expect(projectPackage.scripts['test:watch']).toBe('bun test --watch');
     expect(projectPackage.devDependencies.nodemon).toBeUndefined();
@@ -284,6 +293,8 @@ describe('bubbles-express CLI', () => {
     expect(result.exitCode).toBe(0);
     expect(projectPackage.scripts.dev).toBe('bun --watch src/app.ts');
     expect(projectPackage.scripts.start).toBe('bun src/app.ts');
+    expect(projectPackage.scripts.lint).toBe('bunx eslint .');
+    expect(projectPackage.scripts.typecheck).toBe('bunx tsc --noEmit');
     expect(projectPackage.scripts.test).toBe('bun test');
     expect(projectPackage.scripts['test:watch']).toBe('bun test --watch');
     expect(projectPackage.devDependencies.tsx).toBeUndefined();
@@ -339,6 +350,7 @@ describe('bubbles-express CLI', () => {
 
   it('copies only AGENTS.md when selected', async () => {
     await withInstructionTemplates(
+      'js',
       {
         'AGENTS.md': '# AGENTS\nBe concise.\n',
         'CLAUDE.md': '# CLAUDE\nBe safe.\n',
@@ -363,6 +375,7 @@ describe('bubbles-express CLI', () => {
 
   it('copies AGENTS.md and CLAUDE.md when both are selected', async () => {
     await withInstructionTemplates(
+      'ts',
       {
         'AGENTS.md': '# AGENTS\nFollow repo standards.\n',
         'CLAUDE.md': '# CLAUDE\nPlan before edits.\n',
