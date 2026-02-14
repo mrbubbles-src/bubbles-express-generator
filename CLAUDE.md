@@ -20,3 +20,5 @@
   - Testing instructions
   - Contribution guidelines
   - License and credits
+- If no `/documentation/project-docs/` folder exists, create it.
+- If no `CHANGELOG.md` file exists, create it.
