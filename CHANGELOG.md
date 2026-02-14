@@ -62,3 +62,5 @@ All notable changes to this project will be documented in this file.
 - Updated tests to validate the new help/success output contract.
 - Updated README and project docs to match the refreshed CLI UX.
 - Removed direct runtime dependency on `boxen`.
+- Updated GitHub Actions test workflow to use Node.js 22, deterministic installs
+  via `npm ci`, and explicit lint-before-test CI checks.

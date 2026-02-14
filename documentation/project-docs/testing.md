@@ -6,6 +6,15 @@
 - `npm run lint`: lints root CLI and test code.
 - `bun run test:bun`: Bun-based test command for maintainers.
 
+## CI workflow
+
+GitHub Actions test workflow:
+
+- runner: `ubuntu-latest`
+- Node.js: `22`
+- install: `npm ci`
+- checks: `npm run lint` then `npm run test`
+
 ## What tests cover
 
 - template matrix generation (`js/ts` x `mongo/pg`)

@@ -143,6 +143,12 @@ Root project commands:
 - `npm run test`
 - `npm run dev`
 
+GitHub Actions CI (`.github/workflows/test.yml`) runs on `ubuntu-latest` with
+Node.js `22`, installs dependencies with `npm ci`, then runs:
+
+- `npm run lint`
+- `npm run test`
+
 Bun equivalents:
 
 - `bun run lint`
