@@ -48,7 +48,11 @@ if (notifier?.update) {
 const args = argv.slice(2);
 
 /**
- * Reads a flag from CLI args in both `--flag value` and `--flag=value` forms.
+ * Reads a CLI flag value from either `--flag value` or `--flag=value`.
+ *
+ * Usage: used by startup parsing before prompt mode is selected.
+ * Expects a raw argv slice and a flag key such as `--pm`; returns `null` when
+ * the flag is absent, `''` when present without a value, otherwise a string.
  */
 const getFlagValue = (allArgs, flagName) => {
   const equalsPrefix = `${flagName}=`;
@@ -70,7 +74,10 @@ const getFlagValue = (allArgs, flagName) => {
 };
 
 /**
- * Returns non-flag arguments while skipping known flag payloads.
+ * Collects positional args while skipping known flag payloads.
+ *
+ * Usage: used to determine project-name arguments before interactive prompts.
+ * Expects a raw argv slice and returns only positional tokens in original order.
  */
 const getPositionalArgs = (allArgs) => {
   const positionalArgs = [];
@@ -91,6 +98,12 @@ const getPositionalArgs = (allArgs) => {
   return positionalArgs;
 };
 
+/**
+ * Exits the process with a consistent package-manager validation error.
+ *
+ * Usage: called by package-manager parsing when values are unsupported.
+ * Expects the source label and raw value; does not return because it exits.
+ */
 const exitWithInvalidPm = (source, receivedValue) => {
   const printableValue =
     receivedValue === undefined || receivedValue === null || receivedValue === ''
@@ -107,7 +120,9 @@ const exitWithInvalidPm = (source, receivedValue) => {
 /**
  * Resolves and validates package manager input from env/flags.
  *
- * Usage: returns `null` when omitted so interactive mode can prompt.
+ * Usage: called for both `--pm` and `BUBBLES_PM` sources during bootstrap.
+ * Expects a raw package-manager value and source label; returns normalized
+ * `bun`/`npm`, `null` when omitted, or exits for invalid input.
  */
 const resolvePackageManager = (rawValue, source) => {
   if (rawValue === null || rawValue === undefined) {
@@ -309,7 +324,11 @@ const shouldSkipInstall =
   (skipInstallFromEnv !== '0' && isTestMode);
 
 /**
- * Best-effort recursive delete with ENOTEMPTY retries for busy filesystems.
+ * Removes a file or directory with retries for transient `ENOTEMPTY` races.
+ *
+ * Usage: used by overwrite flows before scaffolding into an existing target.
+ * Expects an absolute/relative path and returns after the path is removed or
+ * confirmed missing; throws on non-retryable failures.
  */
 const removePath = async (targetPath) => {
   try {
@@ -344,6 +363,12 @@ const removePath = async (targetPath) => {
   await fs.rm(targetPath, { force: true }).catch(() => undefined);
 };
 
+/**
+ * Removes every entry inside a directory while preserving the directory itself.
+ *
+ * Usage: used when overwriting the current working directory (`.`).
+ * Expects an existing directory path and returns when all child paths are gone.
+ */
 const removeDirectoryContents = async (directory) => {
   const entries = await fs.readdir(directory);
   for (const entry of entries) {
@@ -352,6 +377,12 @@ const removeDirectoryContents = async (directory) => {
   }
 };
 
+/**
+ * Prompts for a replacement project name when overwrite is declined.
+ *
+ * Usage: called in rename branches for dot-directory and named-directory flows.
+ * Expects the current project name and returns a trimmed replacement or empty.
+ */
 const askForProjectName = async (currentName) => {
   if (isTestMode && process.env.MOCK_RENAME) {
     return process.env.MOCK_RENAME;
@@ -367,7 +398,11 @@ const askForProjectName = async (currentName) => {
 };
 
 /**
- * Handles the dangerous `.` target flow with explicit user intent.
+ * Prompts for the action to take when scaffolding into a non-empty `.` target.
+ *
+ * Usage: called only for current-directory conflicts.
+ * Expects the resolved target directory path and returns `rename`, `overwrite`,
+ * or `cancel` (including test-mode mock behavior).
  */
 const askForDotDirectoryAction = async (targetDir) => {
   if (isTestMode) {
@@ -402,7 +437,11 @@ const askForDotDirectoryAction = async (targetDir) => {
 };
 
 /**
- * Requires a typed safety token before deleting current-directory contents.
+ * Confirms destructive overwrite of the current directory with a typed token.
+ *
+ * Usage: called after selecting the `overwrite` action for `.` targets.
+ * Expects the target directory path and returns `true` only when confirmation
+ * exactly matches `DELETE_CURRENT_DIR` (or test-mode mocks).
  */
 const confirmDotOverwrite = async (targetDir) => {
   if (isTestMode) {
@@ -421,6 +460,12 @@ const confirmDotOverwrite = async (targetDir) => {
   return confirmation === CONFIRM_OVERWRITE_TOKEN;
 };
 
+/**
+ * Prompts whether to overwrite a non-empty named target directory.
+ *
+ * Usage: called for non-`.` targets that already contain files.
+ * Expects the target directory path and returns a boolean overwrite decision.
+ */
 const shouldOverwriteNamedDirectory = async (targetDir) => {
   if (isTestMode && process.env.MOCK_OVERWRITE !== undefined) {
     return process.env.MOCK_OVERWRITE === '1';
@@ -437,7 +482,11 @@ const shouldOverwriteNamedDirectory = async (targetDir) => {
 };
 
 /**
- * Installs generated project dependencies using the selected package manager.
+ * Installs scaffolded project dependencies with the selected package manager.
+ *
+ * Usage: invoked after template copy unless installation is explicitly skipped.
+ * Expects the target directory and `bun`/`npm`; returns when install succeeds
+ * and rejects with actionable errors for missing tooling or install failures.
  */
 const installDependencies = async (targetDir, packageManager) => {
   const command = packageManager === 'bun' ? 'bun' : 'npm';
@@ -481,7 +530,11 @@ const installDependencies = async (targetDir, packageManager) => {
 };
 
 /**
- * Rewrites scripts/dev deps for Bun-native projects after scaffolding.
+ * Applies Bun-specific script and dependency profile adjustments.
+ *
+ * Usage: runs after scaffolding only when `choices.packageManager === 'bun'`.
+ * Expects the generated project path and scaffold choices; returns after
+ * persisting updated `package.json` scripts and dev dependency cleanup.
  */
 const applyPackageManagerProfile = async (targetDir, choices) => {
   if (choices.packageManager !== 'bun') {
@@ -528,6 +581,13 @@ const applyPackageManagerProfile = async (targetDir, choices) => {
   await fs.writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 };
 
+/**
+ * Copies optional AGENTS/CLAUDE instruction files into the generated project.
+ *
+ * Usage: called after template copy when users opt into instruction files.
+ * Expects target directory + scaffold choices and returns after copy attempts,
+ * warning (without failing) when optional templates are missing.
+ */
 const copyOptionalInstructionFiles = async (targetDir, choices) => {
   const filesToCopy = [];
   if (choices.addAgents) {
@@ -565,7 +625,11 @@ const copyOptionalInstructionFiles = async (targetDir, choices) => {
 };
 
 /**
- * End-to-end scaffolding workflow (resolve target, copy template, finalize setup).
+ * Executes the full scaffold workflow from target resolution to setup summary.
+ *
+ * Usage: entrypoint for non-canceled prompt/flag responses.
+ * Expects validated scaffold choices and returns after project creation flow,
+ * including overwrite handling, template copy, optional file copy, and install.
  */
 const createProject = async (choices) => {
   try {

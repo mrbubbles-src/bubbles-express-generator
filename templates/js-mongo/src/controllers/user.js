@@ -2,9 +2,11 @@ import { comparePassword, createJWT, hashPassword } from '../lib/auth.js';
 import User from '../models/user.js';
 
 /**
- * Shared cookie policy for auth tokens issued by login/register routes.
+ * Returns cookie options used when issuing auth tokens.
  *
- * Usage: keeps cookie behavior consistent between auth endpoints.
+ * Usage: pass this object to `res.cookie(...)` in auth handlers.
+ * Expects `NODE_ENV` to determine secure-cookie behavior and returns a stable
+ * options object shared by register and login flows.
  */
 const getAuthCookieOptions = () => ({
   httpOnly: true,
@@ -14,9 +16,11 @@ const getAuthCookieOptions = () => ({
 });
 
 /**
- * Registers a new account and signs the user in with a fresh token cookie.
+ * Creates a user account, issues a JWT cookie, and sends the API response.
  *
- * Usage: mounted on `POST /users/register` after validation middleware.
+ * Usage: mount on `POST /users/register` after validation middleware.
+ * Expects validated `username`, `email`, and `password` fields in `req.body`;
+ * returns via HTTP response on success or `next(error)` on failure.
  */
 export const createUser = async (req, res, next) => {
   try {
@@ -61,9 +65,11 @@ export const createUser = async (req, res, next) => {
 };
 
 /**
- * Authenticates a user and rotates the auth cookie on successful login.
+ * Authenticates credentials, rotates the auth cookie, and returns login state.
  *
- * Usage: mounted on `POST /users/login` with rate limiting + validation.
+ * Usage: mount on `POST /users/login` with rate limiting and validation.
+ * Expects validated `email` and `password` in `req.body`; returns via HTTP
+ * response on success or `next(error)` when authentication fails.
  */
 export const verifyUser = async (req, res, next) => {
   try {

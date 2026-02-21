@@ -6,6 +6,12 @@
 - Run `npm run lint` and `npm test` locally.
 - Keep PRs focused; avoid mixing unrelated changes.
 
+## JSDoc standard
+
+- Write concise JSDoc for project helpers and template exports.
+- Document intent and usage first, then expected inputs and return behavior.
+- Avoid comments that only rephrase function names or line-by-line logic.
+
 ## PR description guidelines
 
 When creating a pull request, include:

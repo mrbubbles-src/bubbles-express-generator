@@ -15,12 +15,24 @@
 - `vitest` + `supertest` test setup
 - `prettier` formatting config
 - `eslint` config and `lint` script
+- consistent logger bootstrap across JS/TS templates:
+  - development: `pino-pretty` transport enabled
+  - non-development: no custom transport object passed
+- JSDoc conventions are mirrored across JS/TS templates:
+  - comments describe intent + usage before implementation details
+  - expected inputs and return behavior are documented on exported helpers
 
 ## TypeScript template specifics
 
-- strict TypeScript config
-- `noUnusedLocals: true`
-- `noUnusedParameters: true`
+- Node-first ESM profile (`module` + `moduleResolution` set to `nodenext`)
+- strict type safety defaults for backend work:
+  - `strict`
+  - `exactOptionalPropertyTypes`
+  - `noUncheckedIndexedAccess`
+  - `noImplicitOverride`
+- modern runtime assumptions (`target: es2022`, `lib: ["ES2022"]`)
+- explicit module behavior (`moduleDetection: "force"`, `verbatimModuleSyntax`)
+- safer transpile toolchain behavior via `isolatedModules`
 - `typecheck` script (`tsc --noEmit` by default)
 
 ## Package-manager aware scripts

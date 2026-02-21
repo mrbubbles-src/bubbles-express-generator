@@ -1,7 +1,8 @@
 - Use Context7 MCP only when unsure or dealing with version-sensitive APIs.
 - Do not use MCPs for basic TS, refactors, or naming.
-- Do not use `any`.
-- JSDoc should explain intent and usage, not obvious code.
+- Do not use `any` or `unknown` unless there's absolutely no other way.
+- Add concise JSDoc comments that explain what the function or component is for, how to use it, what it expects, and what it returns — even if the implementation seems obvious.
+- Avoid comments that merely restate the function name or implementation.
 - Run `typecheck`/`lint` scripts when checking for errors and report any errors exactly as shown.
 - Always update the documentation as necessary, even if not explicitly stated by the user.
 - Always update the changelog as necessary, even if not explicitly stated by the user.

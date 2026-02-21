@@ -5,9 +5,11 @@ import { env } from '../config/env.js';
 let hasConnectionListeners = false;
 
 /**
- * Registers mongoose connection observers once per process.
+ * Attaches mongoose connection listeners once per process.
  *
- * Usage: called before initial connect to avoid duplicate log subscriptions.
+ * Usage: call before the first `mongoose.connect` attempt.
+ * Expects module-level listener state to prevent duplicate subscriptions and
+ * returns `void` after wiring connected/disconnected/error observers.
  */
 const attachConnectionListeners = () => {
   if (hasConnectionListeners) {
@@ -28,7 +30,11 @@ const attachConnectionListeners = () => {
 };
 
 /**
- * Mongo lifecycle helpers used by startup, readiness probes, and shutdown.
+ * Mongo lifecycle API used by startup, readiness checks, and shutdown hooks.
+ *
+ * Usage: import this module in app bootstrap and signal handlers.
+ * Expects validated Mongo configuration and returns async helpers for connect,
+ * ping, and close operations.
  */
 export default {
   connect: async () => {

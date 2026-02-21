@@ -8,9 +8,26 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [1.2.1] - 2026-02-21
+
+### Added
+
+### Changed
+
+- Updated TypeScript template `tsconfig` defaults (`ts-mongo` and `ts-pg`) for modern Node/Express usage: added `lib: ["ES2022"]`, `moduleDetection: "force"`, `isolatedModules`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, and `noImplicitOverride`; removed redundant strict-mode sub-flags.
+
 - Fixed Bun package-manager profile to keep Vitest test commands
   (`bunx vitest run` / `bunx vitest`) so generated project tests match the
   template test suites.
+
+- Aligned JavaScript template logger initialization (`js-mongo` and `js-pg`)
+  with TypeScript templates by conditionally building `pino-http` options so
+  development uses `pino-pretty` transport and non-development passes no
+  custom transport.
+
+- Revised JSDoc across CLI helpers and all JS/TS template variants to match the
+  updated agent instruction standard: comments now focus on intent, usage,
+  expected inputs, and return behavior.
 
 ## [1.2.0] - 2026-02-14
 

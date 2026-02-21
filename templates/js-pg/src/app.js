@@ -14,10 +14,11 @@ import { notFoundHandler } from './middleware/not-found.js';
 import { router as userRouter } from './routes/user.js';
 
 /**
- * Normalizes CORS origins from env and fails closed in production.
+ * Builds the CORS allowlist and enforces a fail-closed default in production.
  *
- * Usage: called during app bootstrap to produce a value accepted by
- * the `cors` middleware `origin` option.
+ * Usage: call during app bootstrap before registering the `cors` middleware.
+ * Expects `env.CORS_ORIGIN` as a comma-separated string; returns a normalized
+ * origin array with a localhost fallback for local development.
  */
 const resolveAllowedOrigins = () => {
   const configuredOrigins =
@@ -37,10 +38,11 @@ const resolveAllowedOrigins = () => {
 };
 
 /**
- * Creates and configures the Express app without starting the server.
+ * Builds the fully wired Express instance without binding a network port.
  *
- * Usage: import in tests to get a fully wired app instance without
- * opening a network port.
+ * Usage: call once at startup or from tests to reuse one middleware stack.
+ * Expects validated env values and route modules; returns an Express app ready
+ * for `listen()` in runtime and `supertest` in tests.
  */
 export const createApp = () => {
   const app = express();
@@ -50,17 +52,17 @@ export const createApp = () => {
     app.set('trust proxy', 1);
   }
 
-  app.use(
-    pinoHttp({
-      transport:
-        env.NODE_ENV === 'development'
-          ? {
-              target: 'pino-pretty',
-              options: { colorize: true, translateTime: 'SYS:standard' },
-            }
-          : undefined,
-    }),
-  );
+  const pinoOptions =
+    env.NODE_ENV === 'development'
+      ? {
+          transport: {
+            target: 'pino-pretty',
+            options: { colorize: true, translateTime: 'SYS:standard' },
+          },
+        }
+      : {};
+
+  app.use(pinoHttp(pinoOptions));
   app.use(helmet());
   app.use(express.json());
   app.use(
@@ -98,9 +100,11 @@ export const createApp = () => {
 export const app = createApp();
 
 /**
- * Starts the HTTP server after required runtime dependencies are ready.
+ * Starts the HTTP server on the configured port after startup prerequisites.
  *
- * Usage: invoked only when this module is executed directly.
+ * Usage: invoke only in direct-run mode, not when importing for tests.
+ * Expects validated configuration and initialized dependencies; returns the
+ * startup completion signal for the current template variant.
  */
 export const startServer = () => {
   return app.listen(env.PORT, () => {
@@ -109,9 +113,11 @@ export const startServer = () => {
 };
 
 /**
- * Performs graceful shutdown by closing database resources first.
+ * Handles termination signals by closing database resources before exit.
  *
- * Usage: bound to process signals to avoid dropping in-flight work.
+ * Usage: bind to `SIGINT` and `SIGTERM` during direct-run startup.
+ * Expects the received signal label for logging and returns a promise that
+ * ends the process with a success or failure exit code.
  */
 const shutdown = async (signal) => {
   try {

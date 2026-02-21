@@ -7,7 +7,10 @@ import { validateInputs } from '../middleware/input-validation.js';
 import { verifyUserToken } from '../middleware/verify-user-token.js';
 
 /**
- * Aggregates user-auth related routes under the `/users` namespace.
+ * Router wiring for user-auth endpoints under the `/users` namespace.
+ *
+ * Usage: mount this router under `/users` during app setup.
+ * Expects auth middleware and controller handlers; returns an Express router.
  */
 export const router = express.Router();
 

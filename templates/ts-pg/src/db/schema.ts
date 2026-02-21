@@ -2,12 +2,19 @@ import { sql } from 'drizzle-orm';
 import { boolean, check, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
- * Application role enum kept in-sync with JWT role claims.
+ * Database enum for user roles used by persistence and JWT claims.
+ *
+ * Usage: reference in table definitions that store authorization roles.
+ * Returns a `pgEnum` factory used by schema columns.
  */
 export const role = pgEnum('role', ['admin', 'user']);
 
 /**
- * User table definition plus guardrail constraints for auth data quality.
+ * Defines the `users` table plus integrity constraints for auth data.
+ *
+ * Usage: imported by migrations and query builders for user persistence.
+ * Expects SQL helpers and role enum wiring; returns a typed table definition
+ * with username/password/email guardrails.
  */
 export const usersTable = pgTable(
   'users',
