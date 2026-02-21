@@ -1,7 +1,11 @@
 import rateLimit from 'express-rate-limit';
 
 /**
- * Rate limit tuned for authentication endpoints to slow brute-force attempts.
+ * Authentication throttle middleware that slows brute-force login attempts.
+ *
+ * Usage: attach before login/register handlers on `/users` routes.
+ * Expects repeated requests from the same client and returns standard
+ * Express middleware that emits 429 responses after the limit is exceeded.
  */
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,

@@ -15,6 +15,12 @@
 - `vitest` + `supertest` test setup
 - `prettier` formatting config
 - `eslint` config and `lint` script
+- consistent logger bootstrap across JS/TS templates:
+  - development: `pino-pretty` transport enabled
+  - non-development: no custom transport object passed
+- JSDoc conventions are mirrored across JS/TS templates:
+  - comments describe intent + usage before implementation details
+  - expected inputs and return behavior are documented on exported helpers
 
 ## TypeScript template specifics
 

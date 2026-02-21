@@ -132,6 +132,8 @@ Generated projects use a `src/` structure for both JS and TS templates.
 
 - `CORS_ORIGIN`: comma-separated CORS allowlist (dev defaults to localhost)
 - `TRUST_PROXY=1`: enables `app.set('trust proxy', 1)`
+- `NODE_ENV=development`: enables pretty-printed HTTP logs via `pino-pretty`;
+  production uses default logger transport settings.
 
 Non-interactive runs must include `--pm` or `BUBBLES_PM`.
 
@@ -212,6 +214,8 @@ If selected, files are copied to the generated project root from:
 - Open an issue for bugs or feature ideas.
 - Keep PRs focused and include tests for behavior changes.
 - Run `npm run lint` and `npm test` before opening a PR.
+- Keep JSDoc intent-first: explain purpose, usage, expected inputs, and return
+  behavior; avoid comments that only restate implementation.
 - See [documentation/project-docs/contributing.md](documentation/project-docs/contributing.md) for PR description guidelines.
 
 ## License and credits

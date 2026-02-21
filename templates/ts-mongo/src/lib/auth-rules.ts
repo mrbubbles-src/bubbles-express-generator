@@ -3,12 +3,17 @@ import type { ValidationChain } from 'express-validator';
 import { check } from 'express-validator';
 
 /**
- * Validation chains keyed by auth action.
+ * Validation-chain presets for registration and login payloads.
  *
  * Usage: pass `userValidationRules.register` or `.login` into
- * `validateInputs` when composing auth routes.
+ * `validateInputs(...)` when wiring auth routes.
+ * Expects request bodies with auth fields and returns arrays of
+ * `ValidationChain` middleware for Express.
  */
-export const userValidationRules: { [key: string]: ValidationChain[] } = {
+export const userValidationRules: {
+  register: ValidationChain[];
+  login: ValidationChain[];
+} = {
   register: [
     check('username')
       .trim()

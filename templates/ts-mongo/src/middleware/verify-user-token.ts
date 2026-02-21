@@ -3,9 +3,11 @@ import type { NextFunction, Request, Response } from 'express';
 import { verifyJWT } from '../lib/auth.js';
 
 /**
- * Blocks login/register calls when a valid auth cookie already exists.
+ * Blocks auth endpoints when a valid auth cookie is already present.
  *
  * Usage: place before login/register handlers to prevent duplicate sessions.
+ * Expects the auth token in `req.cookies.token`; returns a 409 response for
+ * valid tokens, otherwise clears invalid cookies and delegates to `next()`.
  */
 export const verifyUserToken = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.cookies?.token;

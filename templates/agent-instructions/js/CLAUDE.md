@@ -1,6 +1,7 @@
 - Use Context7 MCP only when unsure or dealing with version-sensitive APIs.
 - Do not use MCPs for basic JS, refactors, or naming.
-- JSDoc should explain intent and usage, not obvious code.
+- Add concise JSDoc comments that explain what the function or component is for, how to use it, what it expects, and what it returns — even if the implementation seems obvious.
+- Avoid comments that merely restate the function name or implementation.
 - Run `lint` script when checking for errors and report any errors exactly as shown.
 - Always update the documentation as necessary, even if not explicitly stated by the user.
 - Always update the changelog as necessary, even if not explicitly stated by the user.

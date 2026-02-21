@@ -3,10 +3,11 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 /**
- * Central contract for required runtime configuration.
+ * Runtime env schema that validates required configuration at process start.
  *
- * Usage: update this schema whenever a new env var is introduced so
- * invalid setups fail fast during startup.
+ * Usage: extend this schema whenever new env variables are introduced.
+ * Expects raw `process.env` input; returns parsed/coerced values through
+ * `safeParse` so invalid setups fail fast before the server boots.
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -27,6 +28,9 @@ if (!parsed.success) {
 }
 
 /**
- * Typed and validated environment values for the rest of the app.
+ * Parsed environment object consumed across app modules.
+ *
+ * Usage: import this object instead of reading `process.env` directly.
+ * Expects schema validation to pass and returns normalized configuration data.
  */
 export const env = parsed.data;
