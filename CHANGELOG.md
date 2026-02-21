@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Updated TypeScript template `tsconfig` defaults (`ts-mongo` and `ts-pg`) for modern Node/Express usage: added `lib: ["ES2022"]`, `moduleDetection: "force"`, `isolatedModules`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, and `noImplicitOverride`; removed redundant strict-mode sub-flags.
+
 - Fixed Bun package-manager profile to keep Vitest test commands
   (`bunx vitest run` / `bunx vitest`) so generated project tests match the
   template test suites.

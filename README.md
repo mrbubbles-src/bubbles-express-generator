@@ -162,6 +162,12 @@ Generated project commands include:
 - `test`
 - `typecheck` (TypeScript templates)
 
+TypeScript templates use a Node-focused `tsconfig` profile tuned for Express APIs:
+
+- `module`/`moduleResolution: nodenext`
+- `target: es2022` with `lib: ["ES2022"]`
+- stricter safety flags like `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
+
 When Bun is selected in scaffolding, generated test scripts stay Vitest-based
 (`bunx vitest run` and `bunx vitest`) to match the template test suites.
 

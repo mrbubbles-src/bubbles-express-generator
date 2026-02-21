@@ -18,9 +18,15 @@
 
 ## TypeScript template specifics
 
-- strict TypeScript config
-- `noUnusedLocals: true`
-- `noUnusedParameters: true`
+- Node-first ESM profile (`module` + `moduleResolution` set to `nodenext`)
+- strict type safety defaults for backend work:
+  - `strict`
+  - `exactOptionalPropertyTypes`
+  - `noUncheckedIndexedAccess`
+  - `noImplicitOverride`
+- modern runtime assumptions (`target: es2022`, `lib: ["ES2022"]`)
+- explicit module behavior (`moduleDetection: "force"`, `verbatimModuleSyntax`)
+- safer transpile toolchain behavior via `isolatedModules`
 - `typecheck` script (`tsc --noEmit` by default)
 
 ## Package-manager aware scripts

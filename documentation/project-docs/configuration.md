@@ -24,3 +24,14 @@ Non-interactive runs require explicit package manager selection:
 
 - `--pm bun|npm`, or
 - `BUBBLES_PM=bun|npm`
+
+## TypeScript template compiler defaults
+
+Both TypeScript templates (`ts-mongo`, `ts-pg`) share a backend-focused compiler profile:
+
+- `target: es2022` with `lib: ["ES2022"]`
+- Node ESM behavior via `module` + `moduleResolution: nodenext`
+- explicit module interpretation with `moduleDetection: "force"`
+- stricter runtime-safety checks (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`)
+- per-file transpiler compatibility through `isolatedModules`
+
